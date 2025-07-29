@@ -1,0 +1,15 @@
+PROJECT_DIR := absolute_path(".")
+
+set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
+
+_default:
+    @just --list
+
+docs: _fmt
+    cargo doc --open
+
+test: _fmt
+    cargo test
+
+_fmt:
+    @cargo fmt

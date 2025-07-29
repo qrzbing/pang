@@ -1,0 +1,18 @@
+[package]
+name = "pang"
+version.workspace = true
+edition = "2024"
+authors = ["qrzbing <qrzbingfoxmail.com>"]
+description = "A parser and generator generator."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/qrzbing/pang"
+
+[lib]
+name = "pang"
+path = "src/lib.rs"
+
+[dependencies]
+env_logger = "0.11.8"
+log = "0.4.27"
+serde = { version = "1.0.219", features = ["derive", "rc"] }
+serde_json = "1.0.140"
