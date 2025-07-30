@@ -11,7 +11,7 @@ pub use examples::{
 };
 pub mod macros;
 pub mod symbol;
-pub use symbol::{Symbol, nt, t, t_bits, t_bytes, t_dyn};
+pub use symbol::{Symbol, TerminalKind, nt, t, t_bits, t_bytes, t_dyn};
 
 /// Grammar can extend to do some user-defined actions by GrammarOptions.
 pub type GrammarOptions = BTreeMap<String, GrammarOptionValue>;

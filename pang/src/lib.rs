@@ -42,3 +42,4 @@ Welcome to `PANG`
 )]
 
 pub mod grammar;
+pub mod tree;
