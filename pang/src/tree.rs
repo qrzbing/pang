@@ -74,6 +74,71 @@ impl DerivationTree {
         }
         Ok(())
     }
+
+    /// Converts the tree to a `Vec<u8>`, replace nonterminal symbols with their label.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use pang::{
+    ///     grammar::{nt, t},
+    ///     tree::new_node,
+    /// };
+    ///
+    /// let tree = new_node(
+    ///     nt("start"),
+    ///     Some(vec![new_node(
+    ///         nt("expr"),
+    ///         Some(vec![
+    ///             new_node(nt("expr"), None, None),
+    ///             new_node(t(b"+"), Some(vec![]), None),
+    ///             new_node(nt("expr"), None, None),
+    ///         ]),
+    ///         None,
+    ///     )]),
+    ///     None,
+    /// );
+    ///
+    /// let result = tree.all_terminals();
+    /// assert_eq!(result, b"<expr>+<expr>");
+    /// ```
+    pub fn all_terminals(&self) -> Vec<u8> {
+        match &self.symbol {
+            Symbol::Terminal { kind } => match kind {
+                Literal(value) => value.clone(),
+                Binary(..) => self.value.clone().unwrap_or_default(),
+            },
+            Symbol::NonTerminal { label } => match &self.children {
+                Some(children) => children
+                    .iter()
+                    .flat_map(|child_node| child_node.all_terminals())
+                    .collect(),
+                None => format!("<{}>", label.clone()).into(),
+            },
+        }
+    }
+
+    /// Converts the tree to a `Vec<u8>`, replace nonterminal symbols by empty Vec.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        if let Some(children) = &self.children {
+            if !children.is_empty() {
+                return children.iter().flat_map(|child| child.to_bytes()).collect();
+            }
+        }
+        match &self.symbol {
+            Symbol::Terminal { kind } => match kind {
+                Literal(value) => value.clone(),
+                Binary(..) => self.value.clone().unwrap_or_default(),
+            },
+            Symbol::NonTerminal { .. } => Vec::new(),
+        }
+    }
+
+    /// Converts the tree to a String.
+    pub fn to_string(&self) -> String {
+        let bytes = self.to_bytes();
+        String::from_utf8_lossy(&bytes).to_string()
+    }
 }
 
 impl fmt::Display for DerivationTree {
@@ -103,72 +168,4 @@ pub fn new_node(
         children,
         value,
     })
-}
-
-/// Converts the tree to a `Vec<u8>`, replace nonterminal symbols with their label.
-///
-/// # Examples
-///
-/// ```
-/// use pang::{
-///     grammar::{nt, t},
-///     tree::{new_node, all_terminals},
-/// };
-///
-/// let tree = new_node(
-///     nt("start"),
-///     Some(vec![new_node(
-///         nt("expr"),
-///         Some(vec![
-///             new_node(nt("expr"), None, None),
-///             new_node(t(b"+"), Some(vec![]), None),
-///             new_node(nt("expr"), None, None),
-///         ]),
-///         None,
-///     )]),
-///     None,
-/// );
-///
-/// let result = all_terminals(&tree);
-/// assert_eq!(result, b"<expr>+<expr>");
-/// ```
-pub fn all_terminals(tree: &DerivationTree) -> Vec<u8> {
-    match &tree.symbol {
-        Symbol::Terminal { kind } => match kind {
-            Literal(value) => value.clone(),
-            Binary(..) => tree.value.clone().unwrap_or_default(),
-        },
-        Symbol::NonTerminal { label } => match &tree.children {
-            Some(children) => children
-                .iter()
-                .flat_map(|child_node| all_terminals(child_node))
-                .collect(),
-            None => format!("<{}>", label.clone()).into(),
-        },
-    }
-}
-
-/// Converts the tree to a `Vec<u8>`, replace nonterminal symbols by empty Vec.
-pub fn tree_to_bytes(tree: &DerivationTree) -> Vec<u8> {
-    if let Some(children) = &tree.children {
-        if !children.is_empty() {
-            return children
-                .iter()
-                .flat_map(|child| tree_to_bytes(child))
-                .collect();
-        }
-    }
-    match &tree.symbol {
-        Symbol::Terminal { kind } => match kind {
-            Literal(value) => value.clone(),
-            Binary(..) => tree.value.clone().unwrap_or_default(),
-        },
-        Symbol::NonTerminal { .. } => Vec::new(),
-    }
-}
-
-/// Converts the tree to a String.
-pub fn tree_to_string(tree: &DerivationTree) -> String {
-    let bytes = tree_to_bytes(tree);
-    String::from_utf8_lossy(&bytes).to_string()
 }

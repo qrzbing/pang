@@ -135,6 +135,23 @@ impl Symbol {
             _ => panic!("Cannot call .value() on a NonTerminal or Non-literal symbol"),
         }
     }
+
+    /// Checks if the given symbol is a nonterminal.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use pang::grammar::{t, nt};
+    ///
+    /// let non_terminal = nt("expr");
+    /// let terminal = t(b"+");
+    ///
+    /// assert!(non_terminal.is_nonterminal());
+    /// assert!(!terminal.is_nonterminal());
+    /// ```
+    pub fn is_nonterminal(&self) -> bool {
+        matches!(self, Symbol::NonTerminal { .. })
+    }
 }
 
 /// Shows the value of a literal terminal symbol.
