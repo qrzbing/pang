@@ -5,8 +5,12 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 _default:
     @just --list
 
+[windows]
 docs: _fmt
-    cargo doc --open
+    @$env:RUSTDOCFLAGS=""
+    @cargo doc
+    @$env:RUSTDOCFLAGS="--html-in-header {{justfile_directory()}}\katex-header.html"
+    @cargo doc --no-deps --open
 
 test: _fmt
     cargo test
