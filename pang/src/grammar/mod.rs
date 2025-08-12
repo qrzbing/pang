@@ -1,7 +1,9 @@
 //! Grammar can show the structure and syntax of language.
 
 use std::{
-    collections::{BTreeMap, HashMap, HashSet}, fmt, ops::{Deref, DerefMut}
+    collections::{BTreeMap, HashMap, HashSet},
+    fmt,
+    ops::{Deref, DerefMut},
 };
 
 use log::{debug, error};
