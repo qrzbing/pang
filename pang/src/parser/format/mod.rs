@@ -11,7 +11,7 @@ use nom::{
 };
 
 use crate::{
-    grammar::{Expansion, Grammar, Symbol, TerminalKind, nt, symbol::BinaryKind},
+    grammar::{BinaryKind, Expansion, Grammar, Symbol, TerminalKind, nt},
     parser::{Parser, Region},
     tree::{DerivationTree, new_node},
 };
@@ -122,6 +122,30 @@ pub fn ber_to_usize(bytes: &[u8]) -> Result<usize, &'static str> {
             length = (length << 8) + (byte as usize);
         }
         Ok(length)
+    }
+}
+
+/// Convert a usize to a BER-encoded length field.
+pub fn usize_to_ber_bytes(len: usize) -> Vec<u8> {
+    if len < 128 {
+        // Less than 0x80
+        vec![len as u8]
+    } else {
+        // More than 0x80
+        let len_bytes = len.to_be_bytes();
+        // Find the first non-zero byte (if any)
+        let first_byte_idx = len_bytes
+            .iter()
+            .position(|&b| b != 0)
+            .unwrap_or(len_bytes.len());
+        let num_len_bytes = len_bytes.len() - first_byte_idx;
+
+        let mut result = Vec::with_capacity(1 + num_len_bytes);
+        // Write first byte (with MSB set)
+        result.push(0x80 | num_len_bytes as u8);
+        // Write length itself (big-endian)
+        result.extend_from_slice(&len_bytes[first_byte_idx..]);
+        result
     }
 }
 

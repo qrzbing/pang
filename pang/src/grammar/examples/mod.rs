@@ -3,6 +3,7 @@
 use crate::grammar;
 use crate::grammar::{Expansion, Grammar, exp, nt, t};
 
+pub mod tlv;
 pub mod xml;
 
 /// ASCII letters

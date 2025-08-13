@@ -1,4 +1,4 @@
-//! XML grammar
+//! XML [`Grammar`] Example
 
 use crate::grammar;
 use crate::grammar::{

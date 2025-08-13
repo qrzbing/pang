@@ -12,6 +12,11 @@ docs: _fmt
     @$env:RUSTDOCFLAGS="--html-in-header {{justfile_directory()}}\katex-header.html"
     @cargo doc --no-deps --open
 
+[linux]
+docs: _fmt
+    @RUSTDOCFLAGS="" cargo doc
+    @RUSTDOCFLAGS="--html-in-header {{justfile_directory()}}/katex-header.html" cargo doc --no-deps --open
+
 test: _fmt
     cargo test
 

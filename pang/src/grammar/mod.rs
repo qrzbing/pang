@@ -9,13 +9,14 @@ use std::{
 use log::{debug, error};
 use serde_json::Value as GrammarOptionValue;
 
+#[doc(hidden)]
 pub mod examples;
 pub use examples::{
     ASCII_LETTERS, DIGITS, c_sample_grammar, expr_grammar, srange, xml::xml_grammar,
 };
 pub mod macros;
 pub mod symbol;
-pub use symbol::{Symbol, TerminalKind, nt, t, t_bits, t_bytes, t_dyn};
+pub use symbol::{BinaryKind, Symbol, TerminalKind, nt, t, t_bits, t_bytes, t_dyn};
 
 /// Grammar can extend to do some user-defined actions by GrammarOptions.
 pub type GrammarOptions = BTreeMap<String, GrammarOptionValue>;

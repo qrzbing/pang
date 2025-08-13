@@ -4,6 +4,25 @@
 ///
 /// Examples:
 ///
+/// Define a TLV grammar with options. This grammar is defined in examples/tlv.rs.
+///
+/// ```
+/// use pang::grammar::{Grammar, exp, exp_with_opts, nt, t_bytes, t_dyn};
+/// use pang::{grammar, opts};
+///
+/// let tlv_hrammar = grammar! {
+///    "start" => vec![exp(vec![nt("tlv")])],
+///    "tlv" => vec![exp(vec![nt("type"), nt("len"), nt("value")])],
+///    "type" => vec![exp_with_opts(vec![t_bytes(4)], opts!("endian" => "little"))],
+///    "len" => vec![exp_with_opts(vec![t_bytes(4)], opts!("endian" => "little"))],
+///    "value" => vec![
+///        exp_with_opts(
+///            vec![t_dyn()],
+///            opts!("endian" => "little", "length_is" => "len")
+///        )
+///    ],
+///};
+/// ```
 #[macro_export]
 macro_rules! opts {
     ($($key:expr => $value:expr),* $(,)?) => {

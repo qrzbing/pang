@@ -9,7 +9,7 @@ use std::{
 use rand::{Rng, RngCore};
 
 use crate::{
-    grammar::{Expansion, Grammar, Symbol, TerminalKind, symbol::BinaryKind, t},
+    grammar::{BinaryKind, Expansion, Grammar, Symbol, TerminalKind, t},
     tree::{DerivationTree, TreeFixer, new_node},
 };
 
