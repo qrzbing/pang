@@ -1,0 +1,21 @@
+[package]
+name = "pang-libafl"
+version.workspace = true
+edition = "2024"
+authors = ["qrzbing <qrzbingfoxmail.com>"]
+description = "Pang library for LibAFL"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/qrzbing/pang"
+
+[lib]
+name = "pang_libafl"
+path = "src/lib.rs"
+
+[dependencies]
+ahash = "0.8.12"
+libafl = { version = "0.15.3" }
+libafl_bolts = { version = "0.15.3" }
+log = "0.4.27"
+serde = { version = "1.0.219", features = ["derive"] }
+
+pang = { workspace = true }
