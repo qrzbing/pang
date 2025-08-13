@@ -12,8 +12,8 @@ use crate::{
     tree::DerivationTree,
 };
 
-pub mod language;
 pub mod format;
+pub mod language;
 
 /// Region contains a range of positions that is partially parsed.
 #[derive(Debug, Clone, Copy, Eq)]

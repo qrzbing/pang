@@ -1,4 +1,3 @@
-
 use super::*;
 
 impl FormatParser {
@@ -272,12 +271,10 @@ impl FormatParser {
                                 }
                             }
 
-                            best_parse.ok_or(Err::Error(
-                                ParseError::from_error_kind(
-                                    input,
-                                    ErrorKind::Verify,
-                                ),
-                            ))
+                            best_parse.ok_or(Err::Error(ParseError::from_error_kind(
+                                input,
+                                ErrorKind::Verify,
+                            )))
                         }
                     }
                 })

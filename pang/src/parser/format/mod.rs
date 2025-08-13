@@ -6,12 +6,12 @@ use std::{
 };
 
 use nom::{
-    IResult, Err, Needed,
+    Err, IResult, Needed,
     error::{ErrorKind, ParseError},
 };
 
 use crate::{
-    grammar::{symbol::BinaryKind, Expansion, Grammar, Symbol, TerminalKind, nt},
+    grammar::{Expansion, Grammar, Symbol, TerminalKind, nt, symbol::BinaryKind},
     parser::{Parser, Region},
     tree::{DerivationTree, new_node},
 };
@@ -231,7 +231,6 @@ impl Parser for FormatParser {
         self.coalesce_tokens
     }
 }
-
 
 impl FormatParser {
     /// Create a new Format Parser with the given grammar and start symbol.

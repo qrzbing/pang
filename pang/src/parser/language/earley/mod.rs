@@ -510,7 +510,7 @@ impl Parser for EarleyParser {
     ///
     /// use pang::{
     ///     grammar::xml_grammar,
-    ///     parser::{language::earley::EarleyParser, Parser},
+    ///     parser::{language::EarleyParser, Parser},
     /// };
     ///
     /// let xml_tokens = HashSet::from(["id".to_string(), "text".to_string()]);

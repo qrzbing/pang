@@ -4,15 +4,13 @@ use std::{fmt, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    grammar::{
-        Grammar, Symbol,
-        TerminalKind::{Binary, Literal},
-    },
-    tree::fixer::TreeFixer,
+use crate::grammar::{
+    Grammar, Symbol,
+    TerminalKind::{Binary, Literal},
 };
 
 pub mod fixer;
+pub use fixer::TreeFixer;
 
 /// DerivationTree is designed to represent for grammar,
 ///
@@ -334,18 +332,31 @@ impl DerivationTree {
         fixers: &[Arc<dyn TreeFixer>],
     ) -> Arc<DerivationTree> {
         let mut fixed_node = if let Some(children) = &self.children {
+            let mut changed = false;
             // Fix children first
             let fixed_children = children
                 .iter()
-                .map(|c| c.fix_tree(grammar, fixers))
+                .map(|c| {
+                    let fixed_child = c.fix_tree(grammar, fixers);
+                    // Check if the child was changed
+                    if !Arc::ptr_eq(c, &fixed_child) {
+                        changed = true;
+                    }
+
+                    fixed_child
+                })
                 .collect();
 
-            // Create a new node if children were potentially changed
-            Arc::new(DerivationTree {
-                symbol: self.symbol.clone(),
-                children: Some(fixed_children),
-                value: self.value.clone(),
-            })
+            if changed {
+                // Create a new node if children were potentially changed
+                new_node(
+                    self.symbol.clone(),
+                    Some(fixed_children),
+                    self.value.clone(),
+                )
+            } else {
+                self.clone()
+            }
         } else {
             // No children, no recursive call needed
             self.clone()
