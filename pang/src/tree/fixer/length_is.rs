@@ -13,12 +13,12 @@ use crate::{
 ///
 /// ```
 /// use std::sync::Arc;
-/// 
+///
 /// use pang::{
 ///     generator::Generator, grammar::asn1_tlv_grammar, parser::format::ber_to_usize,
 ///     tree::fixer::LengthIsFixer,
 /// };
-/// 
+///
 /// let grammar = asn1_tlv_grammar();
 /// let generator = Generator::new(
 ///     grammar,
