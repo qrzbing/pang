@@ -9,10 +9,11 @@ use std::{
 use log::{debug, error};
 use serde_json::Value as GrammarOptionValue;
 
-#[doc(hidden)]
+// #[doc(hidden)]
 pub mod examples;
 pub use examples::{
-    ASCII_LETTERS, DIGITS, c_sample_grammar, expr_grammar, srange, xml::xml_grammar,
+    ASCII_LETTERS, DIGITS, c_sample_grammar, expr_grammar, srange, tlv::asn1_tlv_grammar,
+    xml::xml_grammar,
 };
 pub mod macros;
 pub mod symbol;

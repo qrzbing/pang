@@ -1,6 +1,6 @@
 //! TLV [`Grammar`] Example
 
-use crate::grammar::{Grammar, exp, exp_with_opts, nt, t_bytes, t_dyn};
+use crate::grammar::{Grammar, exp, exp_with_opts, nt, t, t_bytes, t_dyn};
 use crate::{grammar, opts};
 
 /// Generate a TLV grammar.
@@ -34,4 +34,30 @@ pub fn nest_tlv_grammar() -> Grammar {
             ),
         ],
     }
+}
+
+/// Generate an ASN.1 TLV grammar.
+pub fn asn1_tlv_grammar() -> Grammar {
+    grammar!(
+        "asn1-tlv" => vec![
+            exp(vec![
+                nt("asn1-tlv-type"),
+                nt("asn1-tlv-len"),
+                nt("asn1-tlv-value"),
+            ])
+        ],
+        "asn1-tlv-type" => vec![
+            exp(vec![t(&[0x02])]),  // Type: Integer
+            exp(vec![t(&[0x04])]),  // Type: Octet String
+            exp(vec![t(&[0x05])]),  // Type: Null
+            exp(vec![t(&[0x06])]),  // Type: Object Identifier
+            exp(vec![t(&[0x43])]),  // Type: Timeticks
+        ],
+        "asn1-tlv-len" => vec![
+            exp_with_opts(vec![t_dyn()], opts!("parser" => "BerLengthParser"))
+        ],
+        "asn1-tlv-value" => vec![exp_with_opts(vec![t_dyn()], opts!(
+            "length_type" => "ber", "length_is" => "asn1-tlv-len"
+        ))],
+    )
 }

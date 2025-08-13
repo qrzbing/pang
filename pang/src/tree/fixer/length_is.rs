@@ -8,6 +8,38 @@ use crate::{
 
 /// LengthIsFixer is a [`TreeFixer`] that fixes the length of a node
 /// based on the length of a value.
+///
+/// # Examples
+///
+/// ```
+/// use std::sync::Arc;
+/// 
+/// use pang::{
+///     generator::Generator, grammar::asn1_tlv_grammar, parser::format::ber_to_usize,
+///     tree::fixer::LengthIsFixer,
+/// };
+/// 
+/// let grammar = asn1_tlv_grammar();
+/// let generator = Generator::new(
+///     grammar,
+///     "asn1-tlv",
+///     4,
+///     6,
+///     vec![Arc::new(LengthIsFixer::new())],
+/// );
+///
+/// let tree = generator.generate_tree();
+/// assert_eq!(tree.symbol.label(), "asn1-tlv");
+///
+/// let children = tree.children.as_ref().unwrap();
+/// assert_eq!(children.len(), 3);
+/// assert_eq!(children[0].symbol.label(), "asn1-tlv-type");
+/// assert_eq!(children[1].symbol.label(), "asn1-tlv-len");
+/// assert_eq!(children[2].symbol.label(), "asn1-tlv-value");
+///
+/// let asn1_tlv_len = ber_to_usize(&children[1].to_bytes()).unwrap();
+/// assert_eq!(asn1_tlv_len, children[2].to_bytes().len());
+/// ```
 #[derive(Debug, Default)]
 pub struct LengthIsFixer;
 
