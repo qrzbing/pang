@@ -93,6 +93,67 @@ impl LengthIsFixer {
 }
 
 impl TreeFixer for LengthIsFixer {
+    /// Fix TLV length based on [`Grammar`].
+    ///
+    /// # Example
+    ///
+    /// ```text
+    /// Before:
+    /// <asn1-tlv>
+    /// ├── <asn1-tlv-type>
+    /// │   └── [05]
+    /// ├── <asn1-tlv-len>
+    /// │   └── Dynamic: [0x00]
+    /// └── <asn1-tlv-value>
+    ///     └── Dynamic: [0x01, 0x02, 0x03, 0x04]
+    ///
+    /// After:
+    /// <asn1-tlv>
+    /// ├── <asn1-tlv-type>
+    /// │   └── [05]
+    /// ├── <asn1-tlv-len>
+    /// │   └── Dynamic: [0x04]
+    /// └── <asn1-tlv-value>
+    ///     └── Dynamic: [0x01, 0x02, 0x03, 0x04]
+    /// ```
+    ///
+    /// ```
+    /// use std::sync::Arc;
+    ///
+    /// use pang::{
+    ///     grammar::{asn1_tlv_grammar, nt, t, t_dyn},
+    ///     tree::{fixer::LengthIsFixer, new_node}
+    /// };
+    ///
+    /// let grammar = asn1_tlv_grammar();
+    /// let tree = new_node(
+    ///     nt("asn1-tlv"),
+    ///     Some(vec![
+    ///         new_node(
+    ///             nt("asn1-tlv-type"),
+    ///             Some(vec![new_node(t(&[0x05]), Some(vec![]), None)]),
+    ///             None,
+    ///         ),
+    ///         new_node(
+    ///             nt("asn1-tlv-len"),
+    ///             Some(vec![new_node(t_dyn(), Some(vec![]), Some(vec![0x00]))]),
+    ///             None,
+    ///         ),
+    ///         new_node(
+    ///             nt("asn1-tlv-value"),
+    ///             Some(vec![new_node(t_dyn(), Some(vec![]), Some(vec![0x01, 0x02, 0x03, 0x04]))]),
+    ///             None,
+    ///         ),
+    ///     ]),
+    ///     None,
+    /// );
+    /// let tlv_len_orig = tree.at(&[1]).unwrap().all_terminals();
+    /// assert_eq!(tlv_len_orig, vec![0x00]);
+    ///
+    /// let tree = tree.fix_tree(&grammar, &[Arc::new(LengthIsFixer::new())]);
+    /// let tlv_len_fixed = tree.at(&[1]).unwrap().all_terminals();
+    /// assert_eq!(tlv_len_fixed, vec![0x04]);
+    /// ```
     fn fix(&self, grammar: &Grammar, node: Arc<DerivationTree>) -> Arc<DerivationTree> {
         // Skip nodes without children
         let children = match &node.children {

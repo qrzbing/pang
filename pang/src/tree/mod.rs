@@ -144,6 +144,105 @@ impl DerivationTree {
         String::from_utf8_lossy(&bytes).to_string()
     }
 
+    /// Get the node at a given path.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use pang::{
+    ///     grammar::{nt, t},
+    ///     tree::new_node,
+    /// };
+    /// let tree = new_node(
+    ///     nt("start"),
+    ///     Some(vec![new_node(
+    ///         nt("expr"),
+    ///         Some(vec![
+    ///             new_node(nt("expr"), None, None),
+    ///             new_node(t(b"+"), Some(vec![]), None),
+    ///             new_node(nt("expr"), None, None),
+    ///         ]),
+    ///         None,
+    ///     )]),
+    ///     None,
+    /// );
+    ///
+    /// assert_eq!(tree.at(&[]), Ok(tree.clone()));
+    ///
+    /// assert_eq!(tree.at(&[0]), Ok(new_node(
+    ///     nt("expr"),
+    ///     Some(vec![
+    ///         new_node(nt("expr"), None, None),
+    ///         new_node(t(b"+"), Some(vec![]), None),
+    ///         new_node(nt("expr"), None, None),
+    ///     ]),
+    ///     None,
+    /// )));
+    ///
+    /// assert_eq!(tree.at(&[0, 2]), Ok(new_node(nt("expr"), None, None)));
+    ///
+    /// assert_eq!(tree.at(&[1]), Err("Invalid path: child index out of bounds"));
+    ///
+    /// assert_eq!(tree.at(&[0, 2, 3]), Err("Invalid path: node has no children"));
+    /// ```
+    pub fn at(self: &Arc<Self>, path: &[usize]) -> Result<Arc<DerivationTree>, &'static str> {
+        let mut current_node = self;
+        for &index in path {
+            let children = current_node
+                .children
+                .as_ref()
+                .ok_or("Invalid path: node has no children")?;
+            current_node = children
+                .get(index)
+                .ok_or("Invalid path: child index out of bounds")?;
+        }
+        Ok(current_node.clone())
+    }
+
+    /// Modify a node by path with a function.
+    ///
+    /// The modification is specified by a closure `f` which takes the target node
+    /// and returns the node that should replace it.
+    pub fn modify_by_path<F>(
+        self: &Arc<Self>,
+        path: &[usize],
+        f: F,
+    ) -> Result<Arc<DerivationTree>, &'static str>
+    where
+        F: FnOnce(&Arc<DerivationTree>) -> Arc<DerivationTree>,
+    {
+        if path.is_empty() {
+            return Ok(f(self));
+        }
+        let child_index = path[0];
+        let remaining_path = &path[1..];
+        if let Some(children) = &self.children {
+            if child_index >= children.len() {
+                return Err("Invalid path: child index out of bounds");
+            }
+
+            // Recursively replace child node.
+            let modified_child = children[child_index].modify_by_path(remaining_path, f)?;
+
+            // No modification
+            if Arc::ptr_eq(&children[child_index], &modified_child) {
+                return Ok(self.clone());
+            }
+
+            // Create a new children vector with modified child
+            let mut new_children = children.clone();
+            new_children[child_index] = modified_child;
+
+            Ok(Arc::new(DerivationTree {
+                symbol: self.symbol.clone(),
+                children: Some(new_children),
+                value: self.value.clone(),
+            }))
+        } else {
+            Err("Invalid path: node has no children to traverse")
+        }
+    }
+
     /// Replace a node by path
     ///
     /// # Examples
@@ -187,38 +286,7 @@ impl DerivationTree {
         path: &[usize],
         new_node: Arc<DerivationTree>,
     ) -> Result<Arc<DerivationTree>, &'static str> {
-        // If path is empty, replace root node.
-        if path.is_empty() {
-            return Ok(new_node);
-        }
-
-        let child_index = path[0];
-        let remaining_path = &path[1..];
-
-        if let Some(children) = &self.children {
-            if child_index >= children.len() {
-                return Err("Invalid path: child index out of bounds");
-            }
-
-            // Recursively replace child node.
-            let modified_child = children[child_index].replace_by_path(remaining_path, new_node)?;
-
-            // No modification
-            if Arc::ptr_eq(&children[child_index], &modified_child) {
-                return Ok(self.clone());
-            }
-
-            let mut new_children = children.clone();
-            new_children[child_index] = modified_child;
-
-            Ok(Arc::new(DerivationTree {
-                symbol: self.symbol.clone(),
-                children: Some(new_children),
-                value: self.value.clone(),
-            }))
-        } else {
-            Err("Invalid path: node has no children to traverse")
-        }
+        self.modify_by_path(path, |_| new_node)
     }
 
     /// Find the first path of a symbol in the tree.
