@@ -1,5 +1,7 @@
 use super::*;
 
+use crate::tree::decoder::ber_to_usize;
+
 impl FormatParser {
     pub(super) fn parse_non_terminal_with_mode<'a>(
         &'a self,
@@ -85,9 +87,8 @@ impl FormatParser {
                     .get("length_type")
                     .and_then(|v| v.as_str())
                 {
-                    Some("ber") => ber_to_usize(&len_bytes).map_err(|_| {
-                        Err::Failure(ParseError::from_error_kind(input, ErrorKind::Verify))
-                    })?,
+                    // FIXME: Do not use unwrap here
+                    Some("ber") => ber_to_usize(&len_bytes).unwrap().0,
                     _ => bytes_to_usize(&len_bytes, expansion.options.get("endian")),
                 }
             } else {

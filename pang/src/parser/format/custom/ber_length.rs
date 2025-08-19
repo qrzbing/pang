@@ -1,14 +1,11 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use nom::{
-    IResult,
-    error::{ErrorKind, ParseError},
-};
+use nom::IResult;
 
 use crate::{
     grammar::{Expansion, t_dyn},
-    parser::format::{CustomParser, SharedState, ber_to_usize, parse_ber_length_field},
-    tree::{DerivationTree, new_node},
+    parser::format::{CustomParser, SharedState, parse_ber_length_field},
+    tree::{DerivationTree, decoder::ber_to_usize, new_node},
 };
 
 /// Parser for BER-encoded length field.
@@ -22,8 +19,9 @@ use crate::{
 ///     grammar::asn1_tlv_grammar,
 ///     parser::{
 ///         FormatParser, Parser,
-///         format::{BerLengthParser, ParserFactory, ber_to_usize},
+///         format::{BerLengthParser, ParserFactory},
 ///     },
+///     tree::decoder::ber_to_usize,
 /// };
 ///
 /// let mut parsers_registry = HashMap::new();
@@ -52,7 +50,7 @@ use crate::{
 ///
 /// let asn1_tlv_len = child[1].to_bytes();
 /// let asn1_tlv_value = child[2].to_bytes();
-/// assert_eq!(ber_to_usize(&asn1_tlv_len).unwrap(), asn1_tlv_value.len());
+/// assert_eq!(ber_to_usize(&asn1_tlv_len).unwrap().0, asn1_tlv_value.len());
 /// ```
 #[derive(Debug, Default)]
 pub struct BerLengthParser {
@@ -80,9 +78,9 @@ impl CustomParser for BerLengthParser {
             consumed_slice.len(),
             label
         );
-        let length_value = ber_to_usize(consumed_slice).map_err(|_| {
-            nom::Err::Failure(ParseError::from_error_kind(input, ErrorKind::Verify))
-        })?;
+
+        // FIXME: Do not use unwrap() here.
+        let length_value = ber_to_usize(consumed_slice).unwrap().0;
 
         self.state.set(label.to_string(), length_value);
         let child_terminal = new_node(t_dyn(), Some(vec![]), Some(consumed_slice.to_vec()));

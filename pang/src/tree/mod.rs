@@ -9,6 +9,8 @@ use crate::grammar::{
     TerminalKind::{Binary, Literal},
 };
 
+pub mod decoder;
+use decoder::{CustomDecoderFn, DecodeError, NodeValue};
 pub mod fixer;
 pub use fixer::TreeFixer;
 
@@ -435,6 +437,37 @@ impl DerivationTree {
         }
 
         fixed_node
+    }
+
+    /// Get the value of the node as [`NodeValue`].
+    pub fn value(&self) -> Option<NodeValue> {
+        let current_node_value = self.value.as_ref().map(|v| NodeValue::new(v.as_slice()));
+
+        // If current node has value, return it.
+        if let Some(value) = current_node_value {
+            return Some(value);
+        }
+
+        // If current node has no value and has one child, return the value of the child.
+        if let Some(children) = &self.children {
+            if children.len() == 1 {
+                return children[0].value();
+            }
+        }
+
+        // TODO: handle other cases.
+        None
+    }
+
+    /// Decode a tree to user-defined type.
+    pub fn decode<'a, T>(&'a self, decoder: CustomDecoderFn<'a, T>) -> Result<T, DecodeError> {
+        if let Some(value) = &self.value() {
+            value.decode(decoder)
+        } else {
+            Err(DecodeError::InvalidData(
+                "Cannot decode a non-terminal node without value",
+            ))
+        }
     }
 }
 

@@ -15,8 +15,9 @@ use crate::{
 /// use std::sync::Arc;
 ///
 /// use pang::{
-///     generator::Generator, grammar::asn1_tlv_grammar, parser::format::ber_to_usize,
-///     tree::fixer::LengthIsFixer,
+///     generator::Generator,
+///     grammar::asn1_tlv_grammar,
+///     tree::{decoder::ber_to_usize, fixer::LengthIsFixer},
 /// };
 ///
 /// let grammar = asn1_tlv_grammar();
@@ -33,11 +34,16 @@ use crate::{
 ///
 /// let children = tree.children.as_ref().unwrap();
 /// assert_eq!(children.len(), 3);
-/// assert_eq!(children[0].symbol.label(), "asn1-tlv-type");
-/// assert_eq!(children[1].symbol.label(), "asn1-tlv-len");
-/// assert_eq!(children[2].symbol.label(), "asn1-tlv-value");
+/// assert_eq!(tree.at(&[0]).unwrap().symbol.label(), "asn1-tlv-type");
+/// assert_eq!(tree.at(&[1]).unwrap().symbol.label(), "asn1-tlv-len");
+/// assert_eq!(tree.at(&[2]).unwrap().symbol.label(), "asn1-tlv-value");
 ///
-/// let asn1_tlv_len = ber_to_usize(&children[1].to_bytes()).unwrap();
+/// let asn1_tlv_len = tree
+///     .at(&[1])
+///     .unwrap()
+///     .decode(ber_to_usize)
+///     .unwrap();
+///
 /// assert_eq!(asn1_tlv_len, children[2].to_bytes().len());
 /// ```
 #[derive(Debug, Default)]

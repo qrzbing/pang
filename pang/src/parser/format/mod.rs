@@ -86,45 +86,6 @@ pub fn parse_ber_length_field(input: &[u8]) -> IResult<&[u8], &[u8]> {
     Ok((&input[field_len..], &input[..field_len]))
 }
 
-/// Convert a BER-encoded length field to a usize.
-pub fn ber_to_usize(bytes: &[u8]) -> Result<usize, &'static str> {
-    if bytes.is_empty() {
-        return Err("BER length field cannot be empty");
-    }
-
-    let first_byte = bytes[0];
-    if (first_byte & 0x80) == 0 {
-        // In short form, the length is the byte itself.
-        // The field must be exactly one byte long.
-        if bytes.len() > 1 {
-            Err("Invalid BER short form: length field is longer than 1 byte")
-        } else {
-            Ok(first_byte as usize)
-        }
-    } else {
-        // Long form (MSB is 1)
-        let num_len_bytes = (first_byte & 0x7F) as usize;
-
-        if num_len_bytes == 0 {
-            return Err("Invalid BER long form: number of length bytes cannot be zero");
-        }
-
-        // Check if the actual number of bytes matches the number advertised.
-        // The total length of the slice should be 1 (for the initial byte) + num_len_bytes.
-        if bytes.len() != 1 + num_len_bytes {
-            return Err("Invalid BER long form: mismatched number of length bytes");
-        }
-
-        let len_bytes = &bytes[1..];
-        let mut length: usize = 0;
-        for &byte in len_bytes {
-            // Manual big-endian conversion
-            length = (length << 8) + (byte as usize);
-        }
-        Ok(length)
-    }
-}
-
 /// Convert a usize to a BER-encoded length field.
 pub fn usize_to_ber_bytes(len: usize) -> Vec<u8> {
     if len < 128 {
