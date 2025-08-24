@@ -88,7 +88,7 @@ impl FormatParser {
                     .and_then(|v| v.as_str())
                 {
                     // FIXME: Do not use unwrap here
-                    Some("ber") => ber_to_usize(&len_bytes).unwrap().0,
+                    Some("ber") => ber_to_usize(&len_bytes).unwrap().1,
                     _ => bytes_to_usize(&len_bytes, expansion.options.get("endian")),
                 }
             } else {

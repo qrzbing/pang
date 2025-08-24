@@ -80,7 +80,7 @@ impl CustomParser for BerLengthParser {
         );
 
         // FIXME: Do not use unwrap() here.
-        let length_value = ber_to_usize(consumed_slice).unwrap().0;
+        let length_value = ber_to_usize(consumed_slice).unwrap().1;
 
         self.state.set(label.to_string(), length_value);
         let child_terminal = new_node(t_dyn(), Some(vec![]), Some(consumed_slice.to_vec()));

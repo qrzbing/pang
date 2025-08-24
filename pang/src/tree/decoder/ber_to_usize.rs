@@ -70,5 +70,5 @@ pub fn ber_to_usize(input: &[u8]) -> DecodeResult<usize> {
     }
 
     let remaining = &input[field_len..];
-    Ok((value_len, remaining))
+    Ok((remaining, value_len))
 }

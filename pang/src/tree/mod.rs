@@ -4,13 +4,16 @@ use std::{fmt, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::grammar::{
-    Grammar, Symbol,
-    TerminalKind::{Binary, Literal},
+use crate::{
+    grammar::{
+        Grammar, Symbol,
+        TerminalKind::{Binary, Literal},
+    },
+    symbol::DecodeError,
 };
 
 pub mod decoder;
-use decoder::{CustomDecoderFn, DecodeError, NodeValue};
+use decoder::{CustomDecoderFn, NodeValue};
 pub mod fixer;
 pub use fixer::TreeFixer;
 

@@ -1,7 +1,17 @@
 //! TLV [`Grammar`] Example
 
-use crate::grammar::{Grammar, exp, exp_with_opts, nt, t, t_bytes, t_dyn};
-use crate::{grammar, opts};
+use crate::{
+    grammar,
+    grammar::{Grammar, exp, exp_with_opts},
+    opts,
+    symbol::{
+        nt,
+        terminals::{
+            bytes::{t_bytes, t_bytes_val},
+            dynamic::t_dyn,
+        },
+    },
+};
 
 /// Generate a TLV grammar.
 pub fn tlv_grammar() -> Grammar {
@@ -47,11 +57,11 @@ pub fn asn1_tlv_grammar() -> Grammar {
             ])
         ],
         "asn1-tlv-type" => vec![
-            exp(vec![t(&[0x02])]),  // Type: Integer
-            exp(vec![t(&[0x04])]),  // Type: Octet String
-            exp(vec![t(&[0x05])]),  // Type: Null
-            exp(vec![t(&[0x06])]),  // Type: Object Identifier
-            exp(vec![t(&[0x43])]),  // Type: Timeticks
+            exp(vec![t_bytes_val(&[0x02])]),  // Type: Integer
+            exp(vec![t_bytes_val(&[0x04])]),  // Type: Octet String
+            exp(vec![t_bytes_val(&[0x05])]),  // Type: Null
+            exp(vec![t_bytes_val(&[0x06])]),  // Type: Object Identifier
+            exp(vec![t_bytes_val(&[0x43])]),  // Type: Timeticks
         ],
         "asn1-tlv-len" => vec![
             exp_with_opts(vec![t_dyn()], opts!("parser" => "BerLengthParser"))

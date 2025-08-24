@@ -1,10 +1,13 @@
 //! XML [`Grammar`] Example
 
-use crate::grammar;
-use crate::grammar::{
-    Grammar,
-    examples::{ASCII_LETTERS, DIGITS},
-    exp, nt, srange, t,
+use crate::{
+    grammar,
+    grammar::{
+        Grammar,
+        examples::{ASCII_LETTERS, DIGITS},
+        exp, srange,
+    },
+    symbol::{nt, terminals::literal::t},
 };
 
 /// Generate a XML grammar
@@ -20,19 +23,19 @@ pub fn xml_grammar() -> Grammar {
             exp(vec![nt("xml-tree"), nt("xml-tree")]),
         ],
         "xml-open-tag" => vec![
-            exp(vec![t(b"<"), nt("id"), t(b">")]),
-            exp(vec![t(b"<"), nt("id"), t(b" "), nt("xml-attribute"), t(b">")]),
+            exp(vec![t("<"), nt("id"), t(">")]),
+            exp(vec![t("<"), nt("id"), t(" "), nt("xml-attribute"), t(">")]),
         ],
         "xml-openclose-tag" => vec![
-            exp(vec![t(b"<"), nt("id"), t(b"/>")]),
-            exp(vec![t(b"<"), nt("id"), t(b" "), nt("xml-attribute"), t(b"/>")]),
+            exp(vec![t("<"), nt("id"), t("/>")]),
+            exp(vec![t("<"), nt("id"), t(" "), nt("xml-attribute"), t("/>")]),
         ],
         "xml-close-tag" => vec![
-            exp(vec![t(b"</"), nt("id"), t(b">")])
+            exp(vec![t("</"), nt("id"), t(">")])
         ],
         "xml-attribute" => vec![
-            exp(vec![nt("id"), t(b"="), nt("id")]),
-            exp(vec![nt("xml-attribute"), t(b" "), nt("xml-attribute")]),
+            exp(vec![nt("id"), t("="), nt("id")]),
+            exp(vec![nt("xml-attribute"), t(" "), nt("xml-attribute")]),
         ],
         "id" => vec![
             exp(vec![nt("letter")]),

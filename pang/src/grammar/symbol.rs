@@ -1,5 +1,7 @@
 //! Symbol contains Terminal or NonTerminal.
 
+use std::fmt::Debug;
+
 use serde::{Deserialize, Serialize};
 
 /// BinaryKind, for binary terminal has three types.

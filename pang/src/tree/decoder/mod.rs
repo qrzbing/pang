@@ -1,34 +1,9 @@
 //! Decoder for Derivation Tree
 
-use std::fmt;
-
 mod ber_to_usize;
 pub use ber_to_usize::ber_to_usize;
 
-/// Decode error types.
-#[derive(Debug, PartialEq)]
-pub enum DecodeError {
-    /// Incomplete data
-    Incomplete,
-    /// Invalid data format
-    InvalidData(&'static str),
-}
-
-impl fmt::Display for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            DecodeError::Incomplete => write!(f, "Incomplete data"),
-            DecodeError::InvalidData(msg) => write!(f, "Invalid data: {}", msg),
-        }
-    }
-}
-
-impl std::error::Error for DecodeError {}
-
-/// DecodeResult type alias
-///
-/// Returns a tuple of the decoded value and the remaining data.
-pub type DecodeResult<'a, T> = Result<(T, &'a [u8]), DecodeError>;
+use crate::symbol::{DecodeError, DecodeResult};
 
 /// Custom decoder function type alias
 pub type CustomDecoderFn<'a, T> = fn(&'a [u8]) -> DecodeResult<'a, T>;
@@ -48,7 +23,7 @@ impl<'a> NodeValue<'a> {
     /// Decode the bytes using a custom decoder function
     pub fn decode<T>(&self, decoder: CustomDecoderFn<'a, T>) -> Result<T, DecodeError> {
         match decoder(self.bytes) {
-            Ok((value, remaining)) => {
+            Ok((remaining, value)) => {
                 if !remaining.is_empty() {
                     Err(DecodeError::InvalidData(
                         "Expected end of input, but data remains",
@@ -65,7 +40,7 @@ impl<'a> NodeValue<'a> {
     pub fn decode_partial<T>(
         &self,
         decoder: CustomDecoderFn<'a, T>,
-    ) -> Result<(T, &'a [u8]), DecodeError> {
+    ) -> Result<(&'a [u8], T), DecodeError> {
         decoder(self.bytes)
     }
 

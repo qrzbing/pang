@@ -10,7 +10,7 @@
 /// use pang::grammar::{Grammar, exp, exp_with_opts, nt, t_bytes, t_dyn};
 /// use pang::{grammar, opts};
 ///
-/// let tlv_hrammar = grammar! {
+/// let tlv_rammar = grammar! {
 ///    "start" => vec![exp(vec![nt("tlv")])],
 ///    "tlv" => vec![exp(vec![nt("type"), nt("len"), nt("value")])],
 ///    "type" => vec![exp_with_opts(vec![t_bytes(4)], opts!("endian" => "little"))],
@@ -21,7 +21,7 @@
 ///            opts!("endian" => "little", "length_is" => "len")
 ///        )
 ///    ],
-///};
+/// };
 /// ```
 #[macro_export]
 macro_rules! opts {

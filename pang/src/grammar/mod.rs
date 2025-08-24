@@ -6,8 +6,10 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use log::{debug, error};
+use log::error;
 use serde_json::Value as GrammarOptionValue;
+
+use crate::symbol::Symbol;
 
 // #[doc(hidden)]
 pub mod examples;
@@ -16,8 +18,8 @@ pub use examples::{
     xml::xml_grammar,
 };
 pub mod macros;
-pub mod symbol;
-pub use symbol::{BinaryKind, Symbol, TerminalKind, nt, t, t_bits, t_bytes, t_dyn};
+// pub mod symbol;
+// pub use symbol::{BinaryKind, Symbol, TerminalKind, nt, t, t_bits, t_bytes, t_dyn};
 
 /// Grammar can extend to do some user-defined actions by GrammarOptions.
 pub type GrammarOptions = BTreeMap<String, GrammarOptionValue>;
@@ -125,7 +127,7 @@ impl fmt::Display for Grammar {
                     let expansion_str: String = expansion
                         .symbols
                         .iter()
-                        .map(|symbol| symbol.display_symbol())
+                        .map(|symbol| symbol.to_string())
                         .collect();
 
                     writeln!(f, "{}{}", prefix, expansion_str)?;
@@ -349,55 +351,55 @@ impl Grammar {
         new_grammar
     }
 
-    /// Computes all non-terminals that can derive an empty string (nullable).
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::HashSet;
-    /// use pang::grammar::{Grammar, exp, nt, t};
-    /// use pang::grammar; // for grammar! macro
-    ///
-    /// let grammar = grammar! {
-    ///     "S" => vec![exp(vec![nt("A"), nt("B")])],
-    ///     "A" => vec![exp(vec![t(b"a")]), exp(vec![])], // A -> 'a' | ε
-    ///     "B" => vec![exp(vec![nt("C"), nt("D")])],
-    ///     "C" => vec![exp(vec![t(b"c")])],
-    ///     "D" => vec![exp(vec![nt("A")])], // D -> A, and A is nullable
-    /// };
-    ///
-    /// // Since A -> ε, A is nullable.
-    /// // Since D -> A and A is nullable, D is also nullable.
-    /// // B -> C D. Since C is not nullable, B is not nullable.
-    /// // S -> A B. Since B is not nullable, S is not nullable.
-    /// let nullable_set = grammar.compute_nullable();
-    /// let expected: HashSet<String> = ["A".to_string(), "D".to_string()].into_iter().collect();
-    /// assert_eq!(nullable_set, expected);
-    /// ```
-    pub fn compute_nullable(&self) -> HashSet<String> {
-        let mut nullable = HashSet::new();
-        loop {
-            let before_len = nullable.len();
-            for (non_terminal, expansions) in self.iter() {
-                for expansion in expansions {
-                    let all_symbols_are_nullable =
-                        expansion.symbols.iter().all(|symbol| match symbol {
-                            Symbol::NonTerminal { label } => nullable.contains(label),
-                            Symbol::Terminal { kind } => match kind {
-                                TerminalKind::Literal(value) => value.is_empty(),
-                                _ => panic!("Do not use parser on Bytes / Bits"),
-                            },
-                        });
-                    if all_symbols_are_nullable {
-                        nullable.insert(non_terminal.clone());
-                    }
-                }
-            }
-            if nullable.len() == before_len {
-                break;
-            }
-        }
-        debug!("Nullable non-terminals: {:?}", nullable);
-        nullable
-    }
+    // /// Computes all non-terminals that can derive an empty string (nullable).
+    // ///
+    // /// # Examples
+    // ///
+    // /// ```
+    // /// use std::collections::HashSet;
+    // /// use pang::grammar::{Grammar, exp, nt, t};
+    // /// use pang::grammar; // for grammar! macro
+    // ///
+    // /// let grammar = grammar! {
+    // ///     "S" => vec![exp(vec![nt("A"), nt("B")])],
+    // ///     "A" => vec![exp(vec![t(b"a")]), exp(vec![])], // A -> 'a' | ε
+    // ///     "B" => vec![exp(vec![nt("C"), nt("D")])],
+    // ///     "C" => vec![exp(vec![t(b"c")])],
+    // ///     "D" => vec![exp(vec![nt("A")])], // D -> A, and A is nullable
+    // /// };
+    // ///
+    // /// // Since A -> ε, A is nullable.
+    // /// // Since D -> A and A is nullable, D is also nullable.
+    // /// // B -> C D. Since C is not nullable, B is not nullable.
+    // /// // S -> A B. Since B is not nullable, S is not nullable.
+    // /// let nullable_set = grammar.compute_nullable();
+    // /// let expected: HashSet<String> = ["A".to_string(), "D".to_string()].into_iter().collect();
+    // /// assert_eq!(nullable_set, expected);
+    // /// ```
+    // pub fn compute_nullable(&self) -> HashSet<String> {
+    //     let mut nullable = HashSet::new();
+    //     loop {
+    //         let before_len = nullable.len();
+    //         for (non_terminal, expansions) in self.iter() {
+    //             for expansion in expansions {
+    //                 let all_symbols_are_nullable =
+    //                     expansion.symbols.iter().all(|symbol| match symbol {
+    //                         Symbol::NonTerminal { label } => nullable.contains(label),
+    //                         Symbol::Terminal { kind } => match kind {
+    //                             TerminalKind::Literal(value) => value.is_empty(),
+    //                             _ => panic!("Do not use parser on Bytes / Bits"),
+    //                         },
+    //                     });
+    //                 if all_symbols_are_nullable {
+    //                     nullable.insert(non_terminal.clone());
+    //                 }
+    //             }
+    //         }
+    //         if nullable.len() == before_len {
+    //             break;
+    //         }
+    //     }
+    //     debug!("Nullable non-terminals: {:?}", nullable);
+    //     nullable
+    // }
 }

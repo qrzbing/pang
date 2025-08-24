@@ -1,7 +1,10 @@
 //! Some example grammars.
 
-use crate::grammar;
-use crate::grammar::{Expansion, Grammar, exp, nt, t};
+use crate::{
+    grammar,
+    grammar::{Expansion, Grammar, exp},
+    symbol::{nt, terminals::literal::t},
+};
 
 pub mod tlv;
 pub mod xml;
@@ -17,11 +20,11 @@ pub fn srange(chars: &str) -> Vec<Expansion> {
     for c in chars.chars() {
         // For each character in the string, create a terminal symbol.
         // We need to convert the char to a byte slice.
-        let mut buf = [0; 4]; // A char can be up to 4 bytes in UTF-8
-        let bytes = c.encode_utf8(&mut buf).as_bytes();
+        // let mut buf = [0; 4]; // A char can be up to 4 bytes in UTF-8
+        // let bytes = c.encode_utf8(&mut buf).as_bytes();
 
         // Create an expansion that is just this single terminal.
-        let expansion = exp(vec![t(bytes)]);
+        let expansion = exp(vec![t(&c.to_string())]);
 
         // Add this expansion as one of the possible choices.
         expansions.push(expansion);
@@ -46,20 +49,20 @@ pub fn expr_grammar() -> Grammar {
             exp(vec![nt("expr")])
         ],
         "expr" => vec![
-            exp(vec![nt("term"), t(b"+"), nt("expr")]),
-            exp(vec![nt("term"), t(b"-"), nt("expr")]),
+            exp(vec![nt("term"), t("+"), nt("expr")]),
+            exp(vec![nt("term"), t("-"), nt("expr")]),
             exp(vec![nt("term")]),
         ],
         "term" => vec![
-            exp(vec![nt("factor"), t(b"*"), nt("term")]),
-            exp(vec![nt("factor"), t(b"/"), nt("term")]),
+            exp(vec![nt("factor"), t("*"), nt("term")]),
+            exp(vec![nt("factor"), t("/"), nt("term")]),
             exp(vec![nt("factor")]),
         ],
         "factor" => vec![
-            exp(vec![t(b"+"), nt("factor")]),
-            exp(vec![t(b"-"), nt("factor")]),
-            exp(vec![t(b"("), nt("expr"), t(b")")]),
-            exp(vec![nt("integer"), t(b"."), nt("integer")]),
+            exp(vec![t("+"), nt("factor")]),
+            exp(vec![t("-"), nt("factor")]),
+            exp(vec![t("("), nt("expr"), t(")")]),
+            exp(vec![nt("integer"), t("."), nt("integer")]),
             exp(vec![nt("integer")]),
         ],
         "integer" => vec![
@@ -75,11 +78,11 @@ pub fn c_sample_grammar() -> Grammar {
     grammar! {
         "start" => vec![exp(vec![nt("A"), nt("B")])],
         "A" => vec![
-            exp(vec![t(b"a"), nt("B"), t(b"c")]),
+            exp(vec![t("a"), nt("B"), t("c")]),
             exp(vec![nt("A"), nt("B")])
         ],
-        "B" => vec![exp(vec![t(b"b"), nt("C")]), exp(vec![nt("D")])],
-        "C" => vec![exp(vec![t(b"c")])],
-        "D" => vec![exp(vec![t(b"d")])]
+        "B" => vec![exp(vec![t("b"), nt("C")]), exp(vec![nt("D")])],
+        "C" => vec![exp(vec![t("c")])],
+        "D" => vec![exp(vec![t("d")])]
     }
 }
