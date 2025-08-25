@@ -1,22 +1,26 @@
 use std::{any::Any, hash::Hasher, sync::Arc};
 
+use rand::{RngCore, rngs::ThreadRng};
 use serde::{Deserialize, Serialize};
 
-use crate::symbol::{Symbol, terminals::TerminalKind};
+use crate::{
+    symbol::{Symbol, terminals::TerminalKind},
+    tree::{DerivationTree, new_node},
+};
 
 ///
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
 pub struct BytesTerminal {
     value: Vec<u8>,
-    length: usize,
+    size: usize,
 }
 
 impl BytesTerminal {
     /// Create a new BytesTerminal.
-    pub fn new_from_len(length: usize) -> Self {
+    pub fn new_from_len(size: usize) -> Self {
         Self {
             value: vec![],
-            length,
+            size,
         }
     }
 
@@ -24,7 +28,7 @@ impl BytesTerminal {
     pub fn new_from_val(value: &[u8]) -> Self {
         Self {
             value: value.to_vec(),
-            length: value.len(),
+            size: value.len(),
         }
     }
 }
@@ -32,15 +36,21 @@ impl BytesTerminal {
 #[typetag::serde]
 impl TerminalKind for BytesTerminal {
     fn display_terminal(&self) -> String {
-        format!("Bytes[{}]", self.length)
+        format!("Bytes[{}]", self.size)
     }
 
     fn encode(&self) -> Result<Vec<u8>, String> {
-        if self.value.len() < self.length {
-            Err(format!("Not enough data for Bytes[{}]", self.length))
+        if self.value.len() < self.size {
+            Err(format!("Not enough data for Bytes[{}]", self.size))
         } else {
-            Ok(self.value[..self.length].to_vec())
+            Ok(self.value[..self.size].to_vec())
         }
+    }
+
+    fn generate(&self, rng: &mut ThreadRng) -> Arc<DerivationTree> {
+        let mut generate_bytes = vec![0u8; self.size];
+        rng.fill_bytes(&mut generate_bytes);
+        new_node(t_bytes_val(&generate_bytes), Some(vec![]))
     }
 
     fn as_any(&self) -> &dyn Any {

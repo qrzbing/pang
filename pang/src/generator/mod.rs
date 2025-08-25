@@ -1,15 +1,12 @@
 //! [`Generator`] can generate random derivation trees from a given [`Grammar`].
 
-use std::{
-    cell::{Cell, RefCell},
-    collections::HashMap,
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
-use rand::{Rng, RngCore};
+use rand::Rng;
 
 use crate::{
-    grammar::{BinaryKind, Expansion, Grammar, Symbol, TerminalKind, t},
+    grammar::{Expansion, Grammar},
+    symbol::{Symbol, terminals::literal::t},
     tree::{DerivationTree, TreeFixer, new_node},
 };
 
@@ -35,54 +32,19 @@ pub enum ExpansionStrategy {
     MaxCost,
 }
 
-/// This helper function checks if an [`Expansion`] contains non-deterministic symbols
-/// like Binary, which should not be cached.
-fn is_expansion_cacheable(expansion: &Expansion) -> bool {
-    for symbol in &expansion.symbols {
-        if let Symbol::Terminal { kind } = symbol {
-            if matches!(kind, TerminalKind::Binary(_)) {
-                return false; // Found a Binary symbol, so this is not cacheable
-            }
-        }
-    }
-    true // No binary symbols found, it's cacheable
-}
-
 fn expansion_to_children(expansion: &Expansion) -> Vec<Arc<DerivationTree>> {
     if expansion.symbols.is_empty() {
-        return vec![new_node(t(b""), Some(vec![]), None)];
+        return vec![new_node(t(""), Some(vec![]))];
     }
     expansion
         .symbols
         .iter()
         .map(|symbol| match symbol.clone() {
-            s @ Symbol::NonTerminal { .. } => new_node(s, None, None),
-            ref s @ Symbol::Terminal { ref kind } => match kind {
-                TerminalKind::Literal(..) => new_node(s.clone(), Some(vec![]), None),
-                TerminalKind::Binary(bin_kind) => {
-                    let mut rng = rand::rng();
-                    let value = match bin_kind {
-                        BinaryKind::Bytes { size } => {
-                            let mut bytes = vec![0u8; *size];
-                            rng.fill_bytes(&mut bytes);
-                            bytes
-                        }
-                        BinaryKind::Bits { size } => {
-                            let byte_size = (*size + 7) / 8;
-                            let mut vec = vec![0u8; byte_size];
-                            rng.fill_bytes(&mut vec);
-                            vec
-                        }
-                        BinaryKind::Dynamic => {
-                            let size = rng.random_range(8..=16); // TODO: Dynamic size
-                            let mut vec = vec![0u8; size];
-                            rng.fill_bytes(&mut vec);
-                            vec
-                        }
-                    };
-                    new_node(s.clone(), Some(vec![]), Some(value))
-                }
-            },
+            s @ Symbol::NonTerminal { .. } => new_node(s, None),
+            ref _s @ Symbol::Terminal { ref kind } => {
+                let mut rng = rand::rng();
+                kind.generate(&mut rng)
+            }
         })
         .collect()
 }
@@ -99,16 +61,11 @@ pub struct Generator {
     /// The maximum number of nonterminals in the generated tree.
     pub max_nonterminals: u32,
 
-    // Cache
-    expansion_cache: RefCell<HashMap<Expansion, Vec<Arc<DerivationTree>>>>,
-    expansion_invocations: Cell<u64>,
-    expansion_invocations_cached: Cell<u64>,
-
     // Expansion costs
     symbol_costs: HashMap<String, f64>,
     expansion_costs: HashMap<Expansion, f64>,
 
-    fixers: Vec<Arc<dyn TreeFixer>>,
+    _fixers: Vec<Arc<dyn TreeFixer>>,
 }
 
 impl Generator {
@@ -129,16 +86,11 @@ impl Generator {
             min_nonterminals,
             max_nonterminals,
 
-            // Cache
-            expansion_cache: RefCell::new(HashMap::new()),
-            expansion_invocations: Cell::new(0),
-            expansion_invocations_cached: Cell::new(0),
-
             // Expansion costs
             symbol_costs: HashMap::new(),
             expansion_costs: HashMap::new(),
 
-            fixers,
+            _fixers: fixers,
         };
         generator.precompute_costs();
 
@@ -159,33 +111,19 @@ impl Generator {
     }
 
     fn init_tree(&self) -> Arc<DerivationTree> {
-        new_node(self.start_symbol.clone(), None, None)
+        new_node(self.start_symbol.clone(), None)
     }
 
     /// Expand the tree starting from the root node.
     pub fn generate_tree(&self) -> Arc<DerivationTree> {
         let tree = self.init_tree();
-        self.expand_tree(tree).fix_tree(&self.grammar, &self.fixers)
+        // self.expand_tree(tree).fix_tree(&self.grammar, &self.fixers)
+        tree
     }
 
     /// Generate a random [`DerivationTree`] and return a vector of bytes.
-    pub fn generate(&self) -> Vec<u8> {
+    pub fn generate(&self) -> String {
         self.generate_tree().all_terminals()
-    }
-
-    /// Print cache stats.
-    pub fn print_cache_stats(&self) {
-        let total = self.expansion_invocations.get();
-        if total == 0 {
-            println!("No expansions were performed.");
-            return;
-        }
-        let cached = self.expansion_invocations_cached.get();
-        let percentage = (cached as f64 * 100.0) / (total as f64);
-        println!(
-            "Cache Stats: {:.2}% of invocations were cached ({} / {}).",
-            percentage, cached, total
-        );
     }
 
     fn precompute_costs(&mut self) {
@@ -261,9 +199,8 @@ impl Generator {
                 label: symbol.to_string(),
             },
             None,
-            None,
         );
         self.expand_tree(start_node)
-            .fix_tree(&self.grammar, &self.fixers)
+        // .fix_tree(&self.grammar, &self.fixers)
     }
 }

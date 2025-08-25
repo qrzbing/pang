@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::{
     grammar::{BinaryKind, Grammar, Symbol, TerminalKind},
-    parser::format::usize_to_ber_bytes,
     tree::{DerivationTree, TreeFixer, new_node},
 };
 

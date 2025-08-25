@@ -1,8 +1,5 @@
 //! Decoder for Derivation Tree
 
-mod ber_to_usize;
-pub use ber_to_usize::ber_to_usize;
-
 use crate::symbol::{DecodeError, DecodeResult};
 
 /// Custom decoder function type alias

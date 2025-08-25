@@ -86,30 +86,6 @@ pub fn parse_ber_length_field(input: &[u8]) -> IResult<&[u8], &[u8]> {
     Ok((&input[field_len..], &input[..field_len]))
 }
 
-/// Convert a usize to a BER-encoded length field.
-pub fn usize_to_ber_bytes(len: usize) -> Vec<u8> {
-    if len < 128 {
-        // Less than 0x80
-        vec![len as u8]
-    } else {
-        // More than 0x80
-        let len_bytes = len.to_be_bytes();
-        // Find the first non-zero byte (if any)
-        let first_byte_idx = len_bytes
-            .iter()
-            .position(|&b| b != 0)
-            .unwrap_or(len_bytes.len());
-        let num_len_bytes = len_bytes.len() - first_byte_idx;
-
-        let mut result = Vec::with_capacity(1 + num_len_bytes);
-        // Write first byte (with MSB set)
-        result.push(0x80 | num_len_bytes as u8);
-        // Write length itself (big-endian)
-        result.extend_from_slice(&len_bytes[first_byte_idx..]);
-        result
-    }
-}
-
 /// Collect different solutions
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ParseMode {

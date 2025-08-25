@@ -1,8 +1,12 @@
 use std::{any::Any, hash::Hasher, sync::Arc};
 
+use rand::{Rng, RngCore, rngs::ThreadRng};
 use serde::{Deserialize, Serialize};
 
-use crate::symbol::{Symbol, terminals::TerminalKind};
+use crate::{
+    symbol::{Symbol, terminals::TerminalKind},
+    tree::{DerivationTree, new_node},
+};
 
 ///
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
@@ -19,6 +23,15 @@ impl DynamicTerminal {
             length: 0,
         }
     }
+
+    ///
+    pub fn from_bytes(inp: &[u8]) -> Self {
+        let size = inp.len();
+        Self {
+            value: inp.to_vec(),
+            length: size,
+        }
+    }
 }
 
 #[typetag::serde]
@@ -33,6 +46,18 @@ impl TerminalKind for DynamicTerminal {
         } else {
             Ok(self.value[..self.length].to_vec())
         }
+    }
+
+    fn generate(&self, rng: &mut ThreadRng) -> Arc<DerivationTree> {
+        let size = rng.random_range(8..=16);
+        let mut generate_bytes = vec![0u8; size];
+        rng.fill_bytes(&mut generate_bytes);
+        new_node(
+            Symbol::Terminal {
+                kind: Arc::new(DynamicTerminal::from_bytes(&generate_bytes)),
+            },
+            Some(vec![]),
+        )
     }
 
     fn as_any(&self) -> &dyn Any {

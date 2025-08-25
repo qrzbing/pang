@@ -4,25 +4,8 @@ use super::*;
 
 impl Generator {
     pub(super) fn expansion_to_children(&self, expansion: &Expansion) -> Vec<Arc<DerivationTree>> {
-        self.expansion_invocations
-            .set(self.expansion_invocations.get() + 1);
-
-        // Only check the cache if the expansion is deterministic and cacheable.
-        let cacheable = is_expansion_cacheable(expansion);
-        if cacheable {
-            if let Some(cached_children) = self.expansion_cache.borrow().get(expansion) {
-                self.expansion_invocations_cached
-                    .set(self.expansion_invocations_cached.get() + 1);
-                return cached_children.clone();
-            }
-        }
-
         let result = expansion_to_children(expansion);
-        if cacheable {
-            self.expansion_cache
-                .borrow_mut()
-                .insert(expansion.clone(), result.clone());
-        }
+
         result
     }
 
@@ -55,7 +38,7 @@ impl Generator {
         let mut rng = rand::rng();
         let index = rng.random_range(0..children_alternatives.len());
         let chosen_children = children_alternatives[index].clone();
-        new_node(node.symbol.clone(), Some(chosen_children), None)
+        new_node(node.symbol.clone(), Some(chosen_children))
     }
 
     /// Counts how many unexpanded symbols there are in a tree
@@ -134,7 +117,7 @@ impl Generator {
 
         // Replace the original child with the expanded one
         new_children[original_index_to_expand] = expanded_child.into();
-        new_node(tree.symbol.clone(), Some(new_children), None)
+        new_node(tree.symbol.clone(), Some(new_children))
     }
 
     pub(super) fn expand_node_by_cost(
@@ -193,7 +176,7 @@ impl Generator {
         let chosen_children = self.expansion_to_children(chosen_expansion);
         let final_children = self.process_chosen_children(chosen_children, chosen_expansion);
 
-        new_node(node.symbol.clone(), Some(final_children), None)
+        new_node(node.symbol.clone(), Some(final_children))
     }
 
     pub(super) fn expand_node_min_cost(&self, node: &Arc<DerivationTree>) -> Arc<DerivationTree> {

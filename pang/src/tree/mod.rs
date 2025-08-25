@@ -8,8 +8,8 @@ use crate::symbol::Symbol;
 
 // pub mod decoder;
 // use decoder::{CustomDecoderFn, NodeValue};
-// pub mod fixer;
-// pub use fixer::TreeFixer;
+pub mod fixer;
+pub use fixer::TreeFixer;
 
 /// DerivationTree is designed to represent for grammar,
 ///
@@ -29,34 +29,9 @@ pub struct DerivationTree {
     /// - For `Symbol::Terminal`:
     ///   - `Some(vec![...])`: Terminal symbol, no children
     pub children: Option<Vec<Arc<DerivationTree>>>,
-
-    /// Value of the terminal symbol.
-    pub value: Option<Vec<u8>>,
 }
 
 impl DerivationTree {
-    fn format_value(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(value) = &self.value {
-            write!(f, ": [")?;
-            for (i, byte) in value.iter().take(16).enumerate() {
-                if i > 0 {
-                    write!(f, ", ")?;
-                }
-                write!(f, "0x{:02X}", byte)?;
-            }
-            if value.len() > 16 {
-                write!(f, ", ...")?;
-            }
-            write!(f, "]")?;
-
-            let lossy_string = String::from_utf8_lossy(value);
-            if !lossy_string.chars().all(char::is_control) {
-                write!(f, " // \"{}\"", lossy_string.escape_default())?;
-            }
-        }
-        Ok(())
-    }
-
     fn display_recursive(
         &self,
         f: &mut fmt::Formatter<'_>,
@@ -66,7 +41,6 @@ impl DerivationTree {
         write!(f, "{}", prefix)?;
         write!(f, "{}", if is_last { "└── " } else { "├── " })?;
         write!(f, "{}", self.symbol.to_string())?;
-        self.format_value(f)?;
         writeln!(f)?;
         let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
         if let Some(children) = &self.children {
@@ -93,13 +67,11 @@ impl DerivationTree {
     ///     Some(vec![new_node(
     ///         nt("expr"),
     ///         Some(vec![
-    ///             new_node(nt("expr"), None, None),
-    ///             new_node(t("+"), Some(vec![]), None),
-    ///             new_node(nt("expr"), None, None),
+    ///             new_node(nt("expr"), None),
+    ///             new_node(t("+"), Some(vec![])),
+    ///             new_node(nt("expr"), None),
     ///         ]),
-    ///         None,
     ///     )]),
-    ///     None,
     /// );
     ///
     /// let result = tree.all_terminals();
@@ -161,13 +133,11 @@ impl DerivationTree {
     ///     Some(vec![new_node(
     ///         nt("expr"),
     ///         Some(vec![
-    ///             new_node(nt("expr"), None, None),
-    ///             new_node(t("+"), Some(vec![]), None),
-    ///             new_node(nt("expr"), None, None),
+    ///             new_node(nt("expr"), None),
+    ///             new_node(t("+"), Some(vec![])),
+    ///             new_node(nt("expr"), None),
     ///         ]),
-    ///         None,
     ///     )]),
-    ///     None,
     /// );
     ///
     /// assert_eq!(tree.at(&[]), Ok(tree.clone()));
@@ -175,14 +145,13 @@ impl DerivationTree {
     /// assert_eq!(tree.at(&[0]), Ok(new_node(
     ///     nt("expr"),
     ///     Some(vec![
-    ///         new_node(nt("expr"), None, None),
-    ///         new_node(t("+"), Some(vec![]), None),
-    ///         new_node(nt("expr"), None, None),
+    ///         new_node(nt("expr"), None),
+    ///         new_node(t("+"), Some(vec![])),
+    ///         new_node(nt("expr"), None),
     ///     ]),
-    ///     None,
     /// )));
     ///
-    /// assert_eq!(tree.at(&[0, 2]), Ok(new_node(nt("expr"), None, None)));
+    /// assert_eq!(tree.at(&[0, 2]), Ok(new_node(nt("expr"), None)));
     ///
     /// assert_eq!(tree.at(&[1]), Err("Invalid path: child index out of bounds"));
     ///
@@ -239,7 +208,6 @@ impl DerivationTree {
             Ok(Arc::new(DerivationTree {
                 symbol: self.symbol.clone(),
                 children: Some(new_children),
-                value: self.value.clone(),
             }))
         } else {
             Err("Invalid path: node has no children to traverse")
@@ -252,7 +220,10 @@ impl DerivationTree {
     ///
     /// ```
     /// use pang::{
-    ///     symbol::{nt, terminals::literal::t},
+    ///     symbol::{
+    ///         nt,
+    ///         terminals::{bytes::t_bytes_val, literal::t},
+    ///     },
     ///     tree::new_node,
     /// };
     /// let tree = new_node(
@@ -260,15 +231,13 @@ impl DerivationTree {
     ///     Some(vec![new_node(
     ///         nt("expr"),
     ///         Some(vec![
-    ///             new_node(nt("expr"), None, None),
-    ///             new_node(t("+"), Some(vec![]), None),
-    ///             new_node(nt("expr"), None, None),
+    ///             new_node(nt("expr"), None),
+    ///             new_node(t("+"), Some(vec![])),
+    ///             new_node(nt("expr"), None),
     ///         ]),
-    ///         None,
     ///     )]),
-    ///     None,
     /// );
-    /// let replace_node = new_node(t("number"), None, Some(b"123".to_vec()));
+    /// let replace_node = new_node(t_bytes_val(b"123"), None);
     /// let tree = tree.replace_by_path(&[0, 2], replace_node).unwrap();
     /// assert_eq!(
     ///     tree,
@@ -277,13 +246,11 @@ impl DerivationTree {
     ///         Some(vec![new_node(
     ///             nt("expr"),
     ///             Some(vec![
-    ///                 new_node(nt("expr"), None, None),
-    ///                 new_node(t("+"), Some(vec![]), None),
-    ///                 new_node(t("number"), None, Some(b"123".to_vec())),
+    ///                 new_node(nt("expr"), None),
+    ///                 new_node(t("+"), Some(vec![])),
+    ///                 new_node(t_bytes_val(b"123"), None),
     ///             ]),
-    ///             None,
     ///         )]),
-    ///         None,
     ///     )
     /// );
     /// ```
@@ -309,13 +276,11 @@ impl DerivationTree {
     ///     Some(vec![new_node(
     ///         nt("expr"),
     ///         Some(vec![
-    ///             new_node(nt("expr"), None, None),
-    ///             new_node(t("+"), Some(vec![]), None),
-    ///             new_node(nt("expr"), None, None),
+    ///             new_node(nt("expr"), None),
+    ///             new_node(t("+"), Some(vec![])),
+    ///             new_node(nt("expr"), None),
     ///         ]),
-    ///         None,
     ///     )]),
-    ///     None,
     /// );
     /// assert_eq!(tree.find_first_path(&nt("expr")), Some(vec![0]));
     /// ```
@@ -363,13 +328,11 @@ impl DerivationTree {
     ///     Some(vec![new_node(
     ///         nt("expr"),
     ///         Some(vec![
-    ///             new_node(nt("expr"), None, None),
-    ///             new_node(t("+"), Some(vec![]), None),
-    ///             new_node(nt("expr"), None, None),
+    ///             new_node(nt("expr"), None),
+    ///             new_node(t("+"), Some(vec![])),
+    ///             new_node(nt("expr"), None),
     ///         ]),
-    ///         None,
     ///     )]),
-    ///     None,
     /// );
     /// assert_eq!(tree.find_all_paths(&nt("expr")), vec![vec![0], vec![0, 0], vec![0, 2]]);
     /// ```
@@ -478,7 +441,6 @@ impl DerivationTree {
 impl fmt::Display for DerivationTree {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.symbol.to_string())?;
-        self.format_value(f)?;
         writeln!(f)?;
         if let Some(children) = &self.children {
             let num_children = children.len();
@@ -492,14 +454,6 @@ impl fmt::Display for DerivationTree {
 }
 
 /// Create a new node of derivation tree.
-pub fn new_node(
-    symbol: Symbol,
-    children: Option<Vec<Arc<DerivationTree>>>,
-    value: Option<Vec<u8>>,
-) -> Arc<DerivationTree> {
-    Arc::new(DerivationTree {
-        symbol,
-        children,
-        value,
-    })
+pub fn new_node(symbol: Symbol, children: Option<Vec<Arc<DerivationTree>>>) -> Arc<DerivationTree> {
+    Arc::new(DerivationTree { symbol, children })
 }

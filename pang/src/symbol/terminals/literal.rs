@@ -4,9 +4,13 @@ use std::{
     sync::Arc,
 };
 
+use rand::rngs::ThreadRng;
 use serde::{Deserialize, Serialize};
 
-use crate::symbol::{Symbol, terminals::TerminalKind};
+use crate::{
+    symbol::{Symbol, terminals::TerminalKind},
+    tree::{DerivationTree, new_node},
+};
 
 ///
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
@@ -29,6 +33,10 @@ impl TerminalKind for LiteralTerminal {
 
     fn encode(&self) -> Result<Vec<u8>, String> {
         Ok(self.value.as_bytes().to_vec())
+    }
+
+    fn generate(&self, _rng: &mut ThreadRng) -> Arc<DerivationTree> {
+        new_node(t(&self.value), Some(vec![]))
     }
 
     fn as_any(&self) -> &dyn Any {

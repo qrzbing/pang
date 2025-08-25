@@ -67,7 +67,7 @@ pub fn asn1_tlv_grammar() -> Grammar {
             exp_with_opts(vec![t_dyn()], opts!("parser" => "BerLengthParser"))
         ],
         "asn1-tlv-value" => vec![exp_with_opts(vec![t_dyn()], opts!(
-            "length_type" => "ber", "length_is" => "asn1-tlv-len"
+            "length_is" => "asn1-tlv-len"
         ))],
     )
 }

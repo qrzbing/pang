@@ -1,6 +1,12 @@
 // !
-use std::{any::Any, fmt::Debug, hash::Hasher};
+use std::{any::Any, fmt::Debug, hash::Hasher, sync::Arc};
 
+use rand::rngs::ThreadRng;
+
+use crate::tree::DerivationTree;
+
+///
+pub mod ber_length;
 ///
 pub mod bits;
 ///
@@ -17,6 +23,8 @@ pub trait TerminalKind: Debug + Send + Sync {
     fn display_terminal(&self) -> String;
     ///
     fn encode(&self) -> Result<Vec<u8>, String>;
+    ///
+    fn generate(&self, rng: &mut ThreadRng) -> Arc<DerivationTree>;
     /// Returns a `&dyn Any` reference to itself for downcasting
     fn as_any(&self) -> &dyn Any;
     /// Dynamically compare two [`TerminalKind`] trait objects
