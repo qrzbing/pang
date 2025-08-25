@@ -29,6 +29,7 @@ impl BytesTerminal {
     }
 }
 
+#[typetag::serde]
 impl TerminalKind for BytesTerminal {
     fn display_terminal(&self) -> String {
         format!("Bytes[{}]", self.length)

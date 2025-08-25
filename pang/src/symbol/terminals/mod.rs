@@ -11,6 +11,7 @@ pub mod dynamic;
 pub mod literal;
 
 ///
+#[typetag::serde(tag = "type")]
 pub trait TerminalKind: Debug + Send + Sync {
     /// Display the terminal in a human-readable format.
     fn display_terminal(&self) -> String;

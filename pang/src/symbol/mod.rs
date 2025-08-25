@@ -6,6 +6,8 @@ use std::{
     sync::Arc,
 };
 
+use serde::{Deserialize, Serialize};
+
 ///
 pub mod terminals;
 use terminals::TerminalKind;
@@ -36,7 +38,7 @@ impl std::error::Error for DecodeError {}
 pub type DecodeResult<'a, T> = Result<(&'a [u8], T), DecodeError>;
 
 /// Symbol contains Terminal or NonTerminal.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Symbol {
     /// Terminal can not be expanded.
     Terminal {
@@ -54,7 +56,7 @@ impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Symbol::NonTerminal { label } => write!(f, "<{}>", label),
-            Self::Terminal { kind } => {
+            Symbol::Terminal { kind } => {
                 write!(f, "{}", kind.display_terminal())
             }
         }
@@ -90,7 +92,7 @@ impl Hash for Symbol {
                 kind.hash_dyn(state);
             }
             Symbol::NonTerminal { label } => {
-                1.hash(state); // NonTerminal 的标识符
+                1.hash(state);
                 label.hash(state);
             }
         }

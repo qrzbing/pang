@@ -21,9 +21,10 @@ impl LiteralTerminal {
     }
 }
 
+#[typetag::serde]
 impl TerminalKind for LiteralTerminal {
     fn display_terminal(&self) -> String {
-        format!("\"{}\"", self.value)
+        format!("{}", self.value)
     }
 
     fn encode(&self) -> Result<Vec<u8>, String> {

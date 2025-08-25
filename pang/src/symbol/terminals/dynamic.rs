@@ -21,6 +21,7 @@ impl DynamicTerminal {
     }
 }
 
+#[typetag::serde]
 impl TerminalKind for DynamicTerminal {
     fn display_terminal(&self) -> String {
         format!("Bytes[{}]", self.length)

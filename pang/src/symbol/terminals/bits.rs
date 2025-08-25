@@ -21,6 +21,7 @@ impl BitsTerminal {
     }
 }
 
+#[typetag::serde]
 impl TerminalKind for BitsTerminal {
     fn display_terminal(&self) -> String {
         format!("Bits[{}]", self.length)
@@ -53,7 +54,7 @@ impl TerminalKind for BitsTerminal {
 }
 
 /// Create a Binary Bytes Terminal.
-pub fn t_bytes(size: usize) -> Symbol {
+pub fn t_bits(size: usize) -> Symbol {
     Symbol::Terminal {
         kind: Arc::new(BitsTerminal::new(size)),
     }

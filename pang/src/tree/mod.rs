@@ -4,18 +4,12 @@ use std::{fmt, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    grammar::{
-        Grammar, Symbol,
-        TerminalKind::{Binary, Literal},
-    },
-    symbol::DecodeError,
-};
+use crate::symbol::Symbol;
 
-pub mod decoder;
-use decoder::{CustomDecoderFn, NodeValue};
-pub mod fixer;
-pub use fixer::TreeFixer;
+// pub mod decoder;
+// use decoder::{CustomDecoderFn, NodeValue};
+// pub mod fixer;
+// pub use fixer::TreeFixer;
 
 /// DerivationTree is designed to represent for grammar,
 ///
@@ -71,7 +65,7 @@ impl DerivationTree {
     ) -> fmt::Result {
         write!(f, "{}", prefix)?;
         write!(f, "{}", if is_last { "└── " } else { "├── " })?;
-        write!(f, "{}", self.symbol.display_symbol())?;
+        write!(f, "{}", self.symbol.to_string())?;
         self.format_value(f)?;
         writeln!(f)?;
         let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
@@ -90,7 +84,7 @@ impl DerivationTree {
     ///
     /// ```
     /// use pang::{
-    ///     grammar::{nt, t},
+    ///     symbol::{nt, terminals::literal::t},
     ///     tree::new_node,
     /// };
     ///
@@ -100,7 +94,7 @@ impl DerivationTree {
     ///         nt("expr"),
     ///         Some(vec![
     ///             new_node(nt("expr"), None, None),
-    ///             new_node(t(b"+"), Some(vec![]), None),
+    ///             new_node(t("+"), Some(vec![]), None),
     ///             new_node(nt("expr"), None, None),
     ///         ]),
     ///         None,
@@ -109,20 +103,17 @@ impl DerivationTree {
     /// );
     ///
     /// let result = tree.all_terminals();
-    /// assert_eq!(result, b"<expr>+<expr>");
+    /// assert_eq!(result, "<expr>+<expr>");
     /// ```
-    pub fn all_terminals(&self) -> Vec<u8> {
+    pub fn all_terminals(&self) -> String {
         match &self.symbol {
-            Symbol::Terminal { kind } => match kind {
-                Literal(value) => value.clone(),
-                Binary(..) => self.value.clone().unwrap_or_default(),
-            },
-            Symbol::NonTerminal { label } => match &self.children {
+            Symbol::Terminal { .. } => self.symbol.to_string(),
+            Symbol::NonTerminal { .. } => match &self.children {
                 Some(children) => children
                     .iter()
-                    .flat_map(|child_node| child_node.all_terminals())
+                    .map(|child_node| child_node.all_terminals())
                     .collect(),
-                None => format!("<{}>", label.clone()).into(),
+                None => self.symbol.to_string(),
             },
         }
     }
@@ -135,18 +126,25 @@ impl DerivationTree {
             }
         }
         match &self.symbol {
-            Symbol::Terminal { kind } => match kind {
-                Literal(value) => value.clone(),
-                Binary(..) => self.value.clone().unwrap_or_default(),
-            },
+            Symbol::Terminal { kind } => kind.encode().expect(&format!(
+                "Terminal {} encode failed",
+                self.symbol.to_string()
+            )),
             Symbol::NonTerminal { .. } => Vec::new(),
         }
     }
 
     /// Converts the tree to a String.
     pub fn to_string(&self) -> String {
-        let bytes = self.to_bytes();
-        String::from_utf8_lossy(&bytes).to_string()
+        if let Some(children) = &self.children {
+            if !children.is_empty() {
+                return children.iter().map(|child| child.to_string()).collect();
+            }
+        }
+        match &self.symbol {
+            Symbol::Terminal { .. } => self.symbol.to_string(),
+            Symbol::NonTerminal { .. } => String::new(),
+        }
     }
 
     /// Get the node at a given path.
@@ -155,7 +153,7 @@ impl DerivationTree {
     ///
     /// ```
     /// use pang::{
-    ///     grammar::{nt, t},
+    ///     symbol::{nt, terminals::literal::t},
     ///     tree::new_node,
     /// };
     /// let tree = new_node(
@@ -164,7 +162,7 @@ impl DerivationTree {
     ///         nt("expr"),
     ///         Some(vec![
     ///             new_node(nt("expr"), None, None),
-    ///             new_node(t(b"+"), Some(vec![]), None),
+    ///             new_node(t("+"), Some(vec![]), None),
     ///             new_node(nt("expr"), None, None),
     ///         ]),
     ///         None,
@@ -178,7 +176,7 @@ impl DerivationTree {
     ///     nt("expr"),
     ///     Some(vec![
     ///         new_node(nt("expr"), None, None),
-    ///         new_node(t(b"+"), Some(vec![]), None),
+    ///         new_node(t("+"), Some(vec![]), None),
     ///         new_node(nt("expr"), None, None),
     ///     ]),
     ///     None,
@@ -254,7 +252,7 @@ impl DerivationTree {
     ///
     /// ```
     /// use pang::{
-    ///     grammar::{nt, t},
+    ///     symbol::{nt, terminals::literal::t},
     ///     tree::new_node,
     /// };
     /// let tree = new_node(
@@ -263,28 +261,31 @@ impl DerivationTree {
     ///         nt("expr"),
     ///         Some(vec![
     ///             new_node(nt("expr"), None, None),
-    ///             new_node(t(b"+"), Some(vec![]), None),
+    ///             new_node(t("+"), Some(vec![]), None),
     ///             new_node(nt("expr"), None, None),
     ///         ]),
     ///         None,
     ///     )]),
     ///     None,
     /// );
-    /// let replace_node = new_node(t(b"number"), None, Some(b"123".to_vec()));
+    /// let replace_node = new_node(t("number"), None, Some(b"123".to_vec()));
     /// let tree = tree.replace_by_path(&[0, 2], replace_node).unwrap();
-    /// assert_eq!(tree, new_node(
-    ///     nt("start"),
-    ///     Some(vec![new_node(
-    ///         nt("expr"),
-    ///         Some(vec![
-    ///             new_node(nt("expr"), None, None),
-    ///             new_node(t(b"+"), Some(vec![]), None),
-    ///             new_node(t(b"number"), None, Some(b"123".to_vec())),
-    ///         ]),
+    /// assert_eq!(
+    ///     tree,
+    ///     new_node(
+    ///         nt("start"),
+    ///         Some(vec![new_node(
+    ///             nt("expr"),
+    ///             Some(vec![
+    ///                 new_node(nt("expr"), None, None),
+    ///                 new_node(t("+"), Some(vec![]), None),
+    ///                 new_node(t("number"), None, Some(b"123".to_vec())),
+    ///             ]),
+    ///             None,
+    ///         )]),
     ///         None,
-    ///     )]),
-    ///     None,
-    /// ));
+    ///     )
+    /// );
     /// ```
     pub fn replace_by_path(
         self: &Arc<Self>,
@@ -300,7 +301,7 @@ impl DerivationTree {
     ///
     /// ```
     /// use pang::{
-    ///     grammar::{nt, t},
+    ///     symbol::{nt, terminals::literal::t},
     ///     tree::new_node,
     /// };
     /// let tree = new_node(
@@ -309,7 +310,7 @@ impl DerivationTree {
     ///         nt("expr"),
     ///         Some(vec![
     ///             new_node(nt("expr"), None, None),
-    ///             new_node(t(b"+"), Some(vec![]), None),
+    ///             new_node(t("+"), Some(vec![]), None),
     ///             new_node(nt("expr"), None, None),
     ///         ]),
     ///         None,
@@ -354,7 +355,7 @@ impl DerivationTree {
     ///
     /// ```
     /// use pang::{
-    ///     grammar::{nt, t},
+    ///     symbol::{nt, terminals::literal::t},
     ///     tree::new_node,
     /// };
     /// let tree = new_node(
@@ -363,7 +364,7 @@ impl DerivationTree {
     ///         nt("expr"),
     ///         Some(vec![
     ///             new_node(nt("expr"), None, None),
-    ///             new_node(t(b"+"), Some(vec![]), None),
+    ///             new_node(t("+"), Some(vec![]), None),
     ///             new_node(nt("expr"), None, None),
     ///         ]),
     ///         None,
@@ -398,85 +399,85 @@ impl DerivationTree {
         }
     }
 
-    /// Fix the derivation tree using a list of [`TreeFixer`].
-    pub fn fix_tree(
-        self: &Arc<Self>,
-        grammar: &Grammar,
-        fixers: &[Arc<dyn TreeFixer>],
-    ) -> Arc<DerivationTree> {
-        let mut fixed_node = if let Some(children) = &self.children {
-            let mut changed = false;
-            // Fix children first
-            let fixed_children = children
-                .iter()
-                .map(|c| {
-                    let fixed_child = c.fix_tree(grammar, fixers);
-                    // Check if the child was changed
-                    if !Arc::ptr_eq(c, &fixed_child) {
-                        changed = true;
-                    }
+    // /// Fix the derivation tree using a list of [`TreeFixer`].
+    // pub fn fix_tree(
+    //     self: &Arc<Self>,
+    //     grammar: &Grammar,
+    //     fixers: &[Arc<dyn TreeFixer>],
+    // ) -> Arc<DerivationTree> {
+    //     let mut fixed_node = if let Some(children) = &self.children {
+    //         let mut changed = false;
+    //         // Fix children first
+    //         let fixed_children = children
+    //             .iter()
+    //             .map(|c| {
+    //                 let fixed_child = c.fix_tree(grammar, fixers);
+    //                 // Check if the child was changed
+    //                 if !Arc::ptr_eq(c, &fixed_child) {
+    //                     changed = true;
+    //                 }
 
-                    fixed_child
-                })
-                .collect();
+    //                 fixed_child
+    //             })
+    //             .collect();
 
-            if changed {
-                // Create a new node if children were potentially changed
-                new_node(
-                    self.symbol.clone(),
-                    Some(fixed_children),
-                    self.value.clone(),
-                )
-            } else {
-                self.clone()
-            }
-        } else {
-            // No children, no recursive call needed
-            self.clone()
-        };
+    //         if changed {
+    //             // Create a new node if children were potentially changed
+    //             new_node(
+    //                 self.symbol.clone(),
+    //                 Some(fixed_children),
+    //                 self.value.clone(),
+    //             )
+    //         } else {
+    //             self.clone()
+    //         }
+    //     } else {
+    //         // No children, no recursive call needed
+    //         self.clone()
+    //     };
 
-        for fixer in fixers {
-            fixed_node = fixer.fix(grammar, fixed_node);
-        }
+    //     for fixer in fixers {
+    //         fixed_node = fixer.fix(grammar, fixed_node);
+    //     }
 
-        fixed_node
-    }
+    //     fixed_node
+    // }
 
-    /// Get the value of the node as [`NodeValue`].
-    pub fn value(&self) -> Option<NodeValue> {
-        let current_node_value = self.value.as_ref().map(|v| NodeValue::new(v.as_slice()));
+    // /// Get the value of the node as [`NodeValue`].
+    // pub fn value(&self) -> Option<NodeValue> {
+    //     let current_node_value = self.value.as_ref().map(|v| NodeValue::new(v.as_slice()));
 
-        // If current node has value, return it.
-        if let Some(value) = current_node_value {
-            return Some(value);
-        }
+    //     // If current node has value, return it.
+    //     if let Some(value) = current_node_value {
+    //         return Some(value);
+    //     }
 
-        // If current node has no value and has one child, return the value of the child.
-        if let Some(children) = &self.children {
-            if children.len() == 1 {
-                return children[0].value();
-            }
-        }
+    //     // If current node has no value and has one child, return the value of the child.
+    //     if let Some(children) = &self.children {
+    //         if children.len() == 1 {
+    //             return children[0].value();
+    //         }
+    //     }
 
-        // TODO: handle other cases.
-        None
-    }
+    //     // TODO: handle other cases.
+    //     None
+    // }
 
-    /// Decode a tree to user-defined type.
-    pub fn decode<'a, T>(&'a self, decoder: CustomDecoderFn<'a, T>) -> Result<T, DecodeError> {
-        if let Some(value) = &self.value() {
-            value.decode(decoder)
-        } else {
-            Err(DecodeError::InvalidData(
-                "Cannot decode a non-terminal node without value",
-            ))
-        }
-    }
+    // /// Decode a tree to user-defined type.
+    // pub fn decode<'a, T>(&'a self, decoder: CustomDecoderFn<'a, T>) -> Result<T, DecodeError> {
+    //     if let Some(value) = &self.value() {
+    //         value.decode(decoder)
+    //     } else {
+    //         Err(DecodeError::InvalidData(
+    //             "Cannot decode a non-terminal node without value",
+    //         ))
+    //     }
+    // }
 }
 
 impl fmt::Display for DerivationTree {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.symbol.display_symbol())?;
+        write!(f, "{}", self.symbol.to_string())?;
         self.format_value(f)?;
         writeln!(f)?;
         if let Some(children) = &self.children {
