@@ -7,8 +7,15 @@
 /// Define a TLV grammar with options. This grammar is defined in examples/tlv.rs.
 ///
 /// ```
-/// use pang::grammar::{Grammar, exp, exp_with_opts, nt, t_bytes, t_dyn};
-/// use pang::{grammar, opts};
+/// use pang::{
+///     grammar,
+///     grammar::{exp, exp_with_opts},
+///     opts,
+///     symbol::{
+///         nt,
+///         terminals::{bytes::t_bytes, dynamic::t_dyn},
+///     },
+/// };
 ///
 /// let tlv_rammar = grammar! {
 ///    "start" => vec![exp(vec![nt("tlv")])],
@@ -41,12 +48,15 @@ macro_rules! opts {
 /// Examples:
 ///
 /// ```
-/// use pang::grammar;
-/// use pang::grammar::{exp, nt, t};
+/// use pang::{
+///     grammar,
+///     grammar::exp,
+///     symbol::{nt, terminals::literal::t}
+/// };
 ///
 /// let grammar = grammar! {
-///     "start" => vec![exp(vec![nt("digit"), t(b"+"), nt("digit")])],
-///     "digit" => vec![exp(vec![t(b"0"), t(b"1"), t(b"2"), t(b"3"), t(b"4")])],
+///     "start" => vec![exp(vec![nt("digit"), t("+"), nt("digit")])],
+///     "digit" => vec![exp(vec![t("0"), t("1"), t("2"), t("3"), t("4")])],
 /// };
 /// ```
 #[macro_export]

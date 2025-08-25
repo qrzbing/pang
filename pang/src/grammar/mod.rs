@@ -52,9 +52,12 @@ impl Expansion {
     /// # Examples
     ///
     /// ```
-    /// use pang::grammar::{t, nt, exp};
+    /// use pang::{
+    ///     grammar::exp,
+    ///     symbol::{nt, terminals::literal::t},
+    /// };
     ///
-    /// let expansion = exp(vec![nt("expr"), t(b"+"), nt("term"), t(b"-"), nt("factor")]);
+    /// let expansion = exp(vec![nt("expr"), t("+"), nt("term"), t("-"), nt("factor")]);
     /// let result = expansion.nonterminals();
     /// assert_eq!(result, vec!["expr", "term", "factor"]);
     /// ```
@@ -273,14 +276,17 @@ impl Grammar {
     /// # Examples
     ///
     /// ```
-    /// use pang::grammar;
-    /// use pang::grammar::{t, nt, exp, expr_grammar, xml_grammar};
+    /// use pang::{
+    ///     grammar,
+    ///     grammar::{exp, expr_grammar, xml_grammar},
+    ///     symbol::{nt, terminals::literal::t},
+    /// };
     /// let grammar = expr_grammar();
     /// assert_eq!(grammar.is_valid("start"), true);
     ///
     /// let grammar = grammar! {
     ///     "start" => vec![exp(vec![nt("x")])],
-    ///     "y" => vec![exp(vec![t(b"1")])]
+    ///     "y" => vec![exp(vec![t("1")])]
     /// };
     ///
     /// assert_eq!(grammar.is_valid("start"), false);
