@@ -1,10 +1,10 @@
-use std::{any::Any, hash::Hasher, sync::Arc};
+use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
 use rand::{RngCore, rngs::ThreadRng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{Symbol, terminals::TerminalKind},
+    symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
     tree::{DerivationTree, new_node},
 };
 
@@ -51,6 +51,15 @@ impl TerminalKind for BitsTerminal {
         let mut generate_bytes = vec![0u8; self.size];
         rng.fill_bytes(&mut generate_bytes);
         new_node(t_bits(self.size), Some(vec![]))
+    }
+
+    fn parse<'a>(
+        &self,
+        _input: &'a [u8],
+        _state: &SharedState,
+        _context: &BTreeMap<String, Arc<DerivationTree>>,
+    ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
+        todo!("Implement it later.")
     }
 
     fn as_any(&self) -> &dyn Any {

@@ -1,9 +1,12 @@
 // !
-use std::{any::Any, fmt::Debug, hash::Hasher, sync::Arc};
+use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hasher, sync::Arc};
 
 use rand::rngs::ThreadRng;
 
-use crate::tree::DerivationTree;
+use crate::{
+    symbol::{DecodeResult, SharedState},
+    tree::DerivationTree,
+};
 
 ///
 pub mod ber_length;
@@ -13,6 +16,8 @@ pub mod bits;
 pub mod bytes;
 ///
 pub mod dynamic;
+///
+pub mod length_is;
 ///
 pub mod literal;
 
@@ -31,4 +36,11 @@ pub trait TerminalKind: Debug + Send + Sync {
     fn eq_dyn(&self, other: &dyn TerminalKind) -> bool;
     ///
     fn hash_dyn(&self, state: &mut dyn Hasher);
+    /// Parse the terminal from input.
+    fn parse<'a>(
+        &self,
+        input: &'a [u8],
+        state: &SharedState,
+        context: &BTreeMap<String, Arc<DerivationTree>>,
+    ) -> DecodeResult<'a, Arc<dyn TerminalKind>>;
 }

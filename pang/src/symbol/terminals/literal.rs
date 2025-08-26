@@ -1,5 +1,6 @@
 use std::{
     any::Any,
+    collections::BTreeMap,
     hash::{Hash, Hasher},
     sync::Arc,
 };
@@ -8,14 +9,15 @@ use rand::rngs::ThreadRng;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{Symbol, terminals::TerminalKind},
+    symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
     tree::{DerivationTree, new_node},
 };
 
 ///
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
 pub struct LiteralTerminal {
-    value: String,
+    ///
+    pub value: String,
 }
 
 impl LiteralTerminal {
@@ -37,6 +39,15 @@ impl TerminalKind for LiteralTerminal {
 
     fn generate(&self, _rng: &mut ThreadRng) -> Arc<DerivationTree> {
         new_node(t(&self.value), Some(vec![]))
+    }
+
+    fn parse<'a>(
+        &self,
+        _input: &'a [u8],
+        _state: &SharedState,
+        _context: &BTreeMap<String, Arc<DerivationTree>>,
+    ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
+        todo!("As LiteralTerminal is used to parse strings, now we don't implement it.")
     }
 
     fn as_any(&self) -> &dyn Any {

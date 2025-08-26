@@ -28,22 +28,22 @@ pub type GrammarOptions = BTreeMap<String, GrammarOptionValue>;
 pub fn exp(symbols: Vec<Symbol>) -> Expansion {
     Expansion {
         symbols,
-        options: GrammarOptions::new(),
+        // options: GrammarOptions::new(),
     }
 }
 
-/// Create a new Expansion with options.
-pub fn exp_with_opts(symbols: Vec<Symbol>, options: GrammarOptions) -> Expansion {
-    Expansion { symbols, options }
-}
+// /// Create a new Expansion with options.
+// pub fn exp_with_opts(symbols: Vec<Symbol>, options: GrammarOptions) -> Expansion {
+//     Expansion { symbols, options }
+// }
 
 /// Expansion contains a sequence of symbols and options.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Expansion {
     /// Symbols in the expansion.
     pub symbols: Vec<Symbol>,
-    /// Options for the expansion.
-    pub options: GrammarOptions,
+    // /// Options for the expansion.
+    // pub options: GrammarOptions,
 }
 
 impl Expansion {
@@ -356,56 +356,4 @@ impl Grammar {
 
         new_grammar
     }
-
-    // /// Computes all non-terminals that can derive an empty string (nullable).
-    // ///
-    // /// # Examples
-    // ///
-    // /// ```
-    // /// use std::collections::HashSet;
-    // /// use pang::grammar::{Grammar, exp, nt, t};
-    // /// use pang::grammar; // for grammar! macro
-    // ///
-    // /// let grammar = grammar! {
-    // ///     "S" => vec![exp(vec![nt("A"), nt("B")])],
-    // ///     "A" => vec![exp(vec![t(b"a")]), exp(vec![])], // A -> 'a' | ε
-    // ///     "B" => vec![exp(vec![nt("C"), nt("D")])],
-    // ///     "C" => vec![exp(vec![t(b"c")])],
-    // ///     "D" => vec![exp(vec![nt("A")])], // D -> A, and A is nullable
-    // /// };
-    // ///
-    // /// // Since A -> ε, A is nullable.
-    // /// // Since D -> A and A is nullable, D is also nullable.
-    // /// // B -> C D. Since C is not nullable, B is not nullable.
-    // /// // S -> A B. Since B is not nullable, S is not nullable.
-    // /// let nullable_set = grammar.compute_nullable();
-    // /// let expected: HashSet<String> = ["A".to_string(), "D".to_string()].into_iter().collect();
-    // /// assert_eq!(nullable_set, expected);
-    // /// ```
-    // pub fn compute_nullable(&self) -> HashSet<String> {
-    //     let mut nullable = HashSet::new();
-    //     loop {
-    //         let before_len = nullable.len();
-    //         for (non_terminal, expansions) in self.iter() {
-    //             for expansion in expansions {
-    //                 let all_symbols_are_nullable =
-    //                     expansion.symbols.iter().all(|symbol| match symbol {
-    //                         Symbol::NonTerminal { label } => nullable.contains(label),
-    //                         Symbol::Terminal { kind } => match kind {
-    //                             TerminalKind::Literal(value) => value.is_empty(),
-    //                             _ => panic!("Do not use parser on Bytes / Bits"),
-    //                         },
-    //                     });
-    //                 if all_symbols_are_nullable {
-    //                     nullable.insert(non_terminal.clone());
-    //                 }
-    //             }
-    //         }
-    //         if nullable.len() == before_len {
-    //             break;
-    //         }
-    //     }
-    //     debug!("Nullable non-terminals: {:?}", nullable);
-    //     nullable
-    // }
 }

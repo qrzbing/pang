@@ -7,25 +7,23 @@
 /// Define a TLV grammar with options. This grammar is defined in examples/tlv.rs.
 ///
 /// ```
+/// use pang::grammar;
 /// use pang::{
-///     grammar,
-///     grammar::{exp, exp_with_opts},
-///     opts,
+///     grammar::exp,
 ///     symbol::{
 ///         nt,
-///         terminals::{bytes::t_bytes, dynamic::t_dyn},
+///         terminals::{bytes::t_bytes, length_is::t_length_is},
 ///     },
 /// };
 ///
 /// let tlv_rammar = grammar! {
 ///    "start" => vec![exp(vec![nt("tlv")])],
 ///    "tlv" => vec![exp(vec![nt("type"), nt("len"), nt("value")])],
-///    "type" => vec![exp_with_opts(vec![t_bytes(4)], opts!("endian" => "little"))],
-///    "len" => vec![exp_with_opts(vec![t_bytes(4)], opts!("endian" => "little"))],
+///    "type" => vec![exp(vec![t_bytes(4)])],
+///    "len" => vec![exp(vec![t_bytes(4)])],
 ///    "value" => vec![
-///        exp_with_opts(
-///            vec![t_dyn()],
-///            opts!("endian" => "little", "length_is" => "len")
+///        exp(
+///            vec![t_length_is("len")]
 ///        )
 ///    ],
 /// };

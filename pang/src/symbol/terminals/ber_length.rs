@@ -1,10 +1,10 @@
-use std::{any::Any, hash::Hasher, sync::Arc};
+use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
 use rand::{Rng, rngs::ThreadRng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{DecodeError, DecodeResult, Symbol, terminals::TerminalKind},
+    symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind},
     tree::{DerivationTree, new_node},
 };
 
@@ -109,6 +109,15 @@ impl TerminalKind for BerLengthTerminal {
     fn generate(&self, rng: &mut ThreadRng) -> Arc<DerivationTree> {
         let _new_size = rng.random_range(0..0x7f);
         new_node(t_ber(), Some(vec![]))
+    }
+
+    fn parse<'a>(
+        &self,
+        _input: &'a [u8],
+        _state: &SharedState,
+        _context: &BTreeMap<String, Arc<DerivationTree>>,
+    ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
+        todo!("Implement it later.")
     }
 
     fn as_any(&self) -> &dyn Any {

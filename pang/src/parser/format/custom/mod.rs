@@ -24,37 +24,6 @@ pub enum CustomParseResult<'a> {
     Failure,
 }
 
-/// A shared state for custom parsers.
-#[derive(Debug, Clone, Default)]
-pub struct SharedState {
-    items: Arc<Mutex<HashMap<String, Box<dyn Any + Send + Sync>>>>,
-}
-
-impl SharedState {
-    /// Create a new shared state.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Set a value to the shared state.
-    pub fn set<T: 'static + Send + Sync>(&self, key: String, value: T) {
-        self.items.lock().unwrap().insert(key, Box::new(value));
-    }
-
-    /// Get a value from the shared state.
-    pub fn get<T: 'static + Send + Sync>(&self, key: &str) -> Option<T>
-    where
-        T: Clone,
-    {
-        self.items
-            .lock()
-            .unwrap()
-            .get(key)
-            .and_then(|value| value.downcast_ref::<T>())
-            .cloned()
-    }
-}
-
 /// User-defined parser trait.
 pub trait CustomParser: Debug + Send + Sync {
     /// Parse the input data and return a list of derivation trees.

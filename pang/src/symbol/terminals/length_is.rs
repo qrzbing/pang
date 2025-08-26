@@ -1,41 +1,36 @@
 use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
-use rand::{Rng, RngCore, rngs::ThreadRng};
+use rand::rngs::ThreadRng;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
-    tree::{DerivationTree, new_node},
+    tree::DerivationTree,
 };
 
 ///
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
-pub struct DynamicTerminal {
+pub struct LengthIsTerminal {
     value: Vec<u8>,
     length: usize,
+
+    symbol_name: String,
 }
 
-impl DynamicTerminal {
-    /// Create a new DynamicTerminal.
-    pub fn new() -> Self {
+impl LengthIsTerminal {
+    /// Create a new LengthIsTerminal.
+    pub fn new(symbol_name: &str) -> Self {
         Self {
             value: vec![],
             length: 0,
-        }
-    }
 
-    ///
-    pub fn from_bytes(inp: &[u8]) -> Self {
-        let size = inp.len();
-        Self {
-            value: inp.to_vec(),
-            length: size,
+            symbol_name: symbol_name.to_string(),
         }
     }
 }
 
 #[typetag::serde]
-impl TerminalKind for DynamicTerminal {
+impl TerminalKind for LengthIsTerminal {
     fn display_terminal(&self) -> String {
         format!("Bytes[{}]", self.length)
     }
@@ -48,16 +43,8 @@ impl TerminalKind for DynamicTerminal {
         }
     }
 
-    fn generate(&self, rng: &mut ThreadRng) -> Arc<DerivationTree> {
-        let size = rng.random_range(8..=16);
-        let mut generate_bytes = vec![0u8; size];
-        rng.fill_bytes(&mut generate_bytes);
-        new_node(
-            Symbol::Terminal {
-                kind: Arc::new(DynamicTerminal::from_bytes(&generate_bytes)),
-            },
-            Some(vec![]),
-        )
+    fn generate(&self, _rng: &mut ThreadRng) -> Arc<DerivationTree> {
+        todo!("Implement it later.")
     }
 
     fn parse<'a>(
@@ -82,14 +69,14 @@ impl TerminalKind for DynamicTerminal {
     }
 
     fn hash_dyn(&self, state: &mut dyn Hasher) {
-        state.write(b"DynamicTerminal");
+        state.write(b"LengthIsTerminal");
         state.write(&self.value);
     }
 }
 
 ///
-pub fn t_dyn() -> Symbol {
+pub fn t_length_is(symbol_name: &str) -> Symbol {
     Symbol::Terminal {
-        kind: Arc::new(DynamicTerminal::new()),
+        kind: Arc::new(LengthIsTerminal::new(symbol_name)),
     }
 }

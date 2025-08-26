@@ -5,86 +5,82 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use nom::{
-    Err, IResult, Needed,
-    error::{ErrorKind, ParseError},
-};
-
 use crate::{
-    grammar::{BinaryKind, Expansion, Grammar, Symbol, TerminalKind, nt},
+    grammar::{Expansion, Grammar},
     parser::{Parser, Region},
+    symbol::SharedState,
     tree::{DerivationTree, new_node},
 };
 
-mod custom;
-pub use custom::{
-    CustomParseResult, CustomParser, ParserFactory, ParserRegistry, SharedState,
-    ber_length::BerLengthParser,
-};
+// mod custom;
+// pub use custom::{
+//     CustomParseResult, CustomParser, ParserFactory, ParserRegistry,
+//     ber_length::BerLengthParser,
+// };
 mod logic;
 mod terminal;
 
-/// Convert bytes to usize.
-///
-/// # Examples
-///
-/// ```
-/// use serde_json::json;
-///
-/// use pang::parser::format::bytes_to_usize;
-///
-/// assert_eq!(bytes_to_usize(b"\x01\x00\x00\x00\x00\x00\x00\x00", Some(&json!("little"))), 1);
-/// assert_eq!(bytes_to_usize(b"\x01\x00\x00\x00", Some(&json!("little"))), 1);
-/// assert_eq!(bytes_to_usize(b"\x01\x00", Some(&json!("little"))), 1);
-/// assert_eq!(bytes_to_usize(b"\x01", Some(&json!("little"))), 1);
-/// assert_eq!(bytes_to_usize(b"\x00\x00\x00\x00\x00\x00\x00\x01", Some(&json!("big"))), 1);
-/// assert_eq!(bytes_to_usize(b"\x00\x00\x00\x01", Some(&json!("big"))), 1);
-/// assert_eq!(bytes_to_usize(b"\x00\x01", Some(&json!("big"))), 1);
-/// assert_eq!(bytes_to_usize(b"\x01", Some(&json!("big"))), 1);
-/// ```
-pub fn bytes_to_usize(bytes: &[u8], endian: Option<&serde_json::Value>) -> usize {
-    let is_little = endian
-        .and_then(|v| v.as_str())
-        .map_or(false, |s| s == "little");
+// /// Convert bytes to usize.
+// ///
+// /// # Examples
+// ///
+// /// ```
+// /// use serde_json::json;
+// ///
+// /// use pang::parser::format::bytes_to_usize;
+// ///
+// /// assert_eq!(bytes_to_usize(b"\x01\x00\x00\x00\x00\x00\x00\x00", Some(&json!("little"))), 1);
+// /// assert_eq!(bytes_to_usize(b"\x01\x00\x00\x00", Some(&json!("little"))), 1);
+// /// assert_eq!(bytes_to_usize(b"\x01\x00", Some(&json!("little"))), 1);
+// /// assert_eq!(bytes_to_usize(b"\x01", Some(&json!("little"))), 1);
+// /// assert_eq!(bytes_to_usize(b"\x00\x00\x00\x00\x00\x00\x00\x01", Some(&json!("big"))), 1);
+// /// assert_eq!(bytes_to_usize(b"\x00\x00\x00\x01", Some(&json!("big"))), 1);
+// /// assert_eq!(bytes_to_usize(b"\x00\x01", Some(&json!("big"))), 1);
+// /// assert_eq!(bytes_to_usize(b"\x01", Some(&json!("big"))), 1);
+// /// ```
+// pub fn bytes_to_usize(bytes: &[u8], endian: Option<&serde_json::Value>) -> usize {
+//     let is_little = endian
+//         .and_then(|v| v.as_str())
+//         .map_or(false, |s| s == "little");
 
-    let mut buf = [0u8; 8];
-    let len = bytes.len().min(8);
+//     let mut buf = [0u8; 8];
+//     let len = bytes.len().min(8);
 
-    if is_little {
-        buf[..len].copy_from_slice(&bytes[..len]);
-        usize::from_le_bytes(buf)
-    } else {
-        buf[8 - len..].copy_from_slice(&bytes[..len]);
-        usize::from_be_bytes(buf)
-    }
-}
+//     if is_little {
+//         buf[..len].copy_from_slice(&bytes[..len]);
+//         usize::from_le_bytes(buf)
+//     } else {
+//         buf[8 - len..].copy_from_slice(&bytes[..len]);
+//         usize::from_be_bytes(buf)
+//     }
+// }
 
-/// Parse a BER-encoded length field.
-pub fn parse_ber_length_field(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    // Ensure we have at least one byte to read.
-    if input.is_empty() {
-        return Err(Err::Incomplete(Needed::new(1)));
-    }
+// /// Parse a BER-encoded length field.
+// pub fn parse_ber_length_field(input: &[u8]) -> IResult<&[u8], &[u8]> {
+//     // Ensure we have at least one byte to read.
+//     if input.is_empty() {
+//         return Err(Err::Incomplete(Needed::new(1)));
+//     }
 
-    let first_byte = input[0];
-    let field_len = if (first_byte & 0x80) == 0 {
-        // Short form: the field is exactly 1 byte long.
-        1
-    } else {
-        // Long form: the total length is 1 (for the first byte)
-        // plus the number of bytes indicated in the lower 7 bits.
-        let num_len_bytes = (first_byte & 0x7F) as usize;
-        1 + num_len_bytes
-    };
+//     let first_byte = input[0];
+//     let field_len = if (first_byte & 0x80) == 0 {
+//         // Short form: the field is exactly 1 byte long.
+//         1
+//     } else {
+//         // Long form: the total length is 1 (for the first byte)
+//         // plus the number of bytes indicated in the lower 7 bits.
+//         let num_len_bytes = (first_byte & 0x7F) as usize;
+//         1 + num_len_bytes
+//     };
 
-    // Check if we have enough bytes in the input for the full field.
-    if input.len() < field_len {
-        return Err(Err::Incomplete(Needed::new(field_len - input.len())));
-    }
+//     // Check if we have enough bytes in the input for the full field.
+//     if input.len() < field_len {
+//         return Err(Err::Incomplete(Needed::new(field_len - input.len())));
+//     }
 
-    // Split the input at the calculated field length.
-    Ok((&input[field_len..], &input[..field_len]))
-}
+//     // Split the input at the calculated field length.
+//     Ok((&input[field_len..], &input[..field_len]))
+// }
 
 /// Collect different solutions
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -106,8 +102,6 @@ pub struct FormatParser {
     coalesce_tokens: bool,
     regions: Mutex<HashMap<String, HashSet<Region>>>,
     original_input_ptr: Mutex<usize>,
-    // Custom parsers
-    custom_parsers: HashMap<String, Box<dyn CustomParser>>,
     // Share State
     state: SharedState,
 }
@@ -195,45 +189,17 @@ impl Parser for FormatParser {
 
 impl FormatParser {
     /// Create a new Format Parser with the given grammar and start symbol.
-    pub fn new(grammar: Grammar, start_symbol: &str, parsers_registry: &ParserRegistry) -> Self {
+    pub fn new(grammar: Grammar, start_symbol: &str) -> Self {
         let shared_state = SharedState::new();
 
-        let mut parser = FormatParser {
+        FormatParser {
             grammar: grammar,
             start_symbol: start_symbol.to_string(),
             tokens: HashSet::new(),
             coalesce_tokens: false,
             regions: Mutex::new(HashMap::new()),
             original_input_ptr: Mutex::new(0),
-            custom_parsers: HashMap::new(),
             state: shared_state.clone(),
-        };
-
-        for (label, factory) in parsers_registry {
-            parser.register_parser(label, factory(shared_state.clone()));
         }
-
-        parser
-    }
-
-    /// Register a custom parser for a given label.
-    pub fn register_parser(&mut self, label: &str, parser: Box<dyn CustomParser>) {
-        self.custom_parsers.insert(label.to_string(), parser);
-    }
-
-    fn extract_value_from_node(&self, node: &Arc<DerivationTree>) -> Vec<u8> {
-        if let Some(ref value) = node.value {
-            return value.clone();
-        }
-
-        if let Some(ref children) = node.children {
-            for child in children {
-                if let Some(ref value) = child.value {
-                    return value.clone();
-                }
-            }
-        }
-
-        vec![]
     }
 }

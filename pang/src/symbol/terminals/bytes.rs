@@ -1,10 +1,10 @@
-use std::{any::Any, hash::Hasher, sync::Arc};
+use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
 use rand::{RngCore, rngs::ThreadRng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{Symbol, terminals::TerminalKind},
+    symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind},
     tree::{DerivationTree, new_node},
 };
 
@@ -51,6 +51,23 @@ impl TerminalKind for BytesTerminal {
         let mut generate_bytes = vec![0u8; self.size];
         rng.fill_bytes(&mut generate_bytes);
         new_node(t_bytes_val(&generate_bytes), Some(vec![]))
+    }
+
+    fn parse<'a>(
+        &self,
+        input: &'a [u8],
+        _state: &SharedState,
+        _context: &BTreeMap<String, Arc<DerivationTree>>,
+    ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
+        assert_ne!(self.size, 0);
+        if input.len() < self.size {
+            return Err(DecodeError::Incomplete);
+        }
+        let (consumed_slice, remaining_input) = input.split_at(self.size);
+        Ok((
+            remaining_input,
+            Arc::new(BytesTerminal::new_from_val(consumed_slice)),
+        ))
     }
 
     fn as_any(&self) -> &dyn Any {

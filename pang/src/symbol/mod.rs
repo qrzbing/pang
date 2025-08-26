@@ -1,9 +1,11 @@
 //! TODO
 
 use std::{
+    any::Any,
+    collections::HashMap,
     fmt::{self, Debug},
     hash::{Hash, Hasher},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 use serde::{Deserialize, Serialize};
@@ -32,6 +34,37 @@ impl fmt::Display for DecodeError {
 
 impl std::error::Error for DecodeError {}
 
+/// A shared state for custom parsers.
+#[derive(Debug, Clone, Default)]
+pub struct SharedState {
+    items: Arc<Mutex<HashMap<String, Box<dyn Any + Send + Sync>>>>,
+}
+
+impl SharedState {
+    /// Create a new shared state.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set a value to the shared state.
+    pub fn set<T: 'static + Send + Sync>(&self, key: String, value: T) {
+        self.items.lock().unwrap().insert(key, Box::new(value));
+    }
+
+    /// Get a value from the shared state.
+    pub fn get<T: 'static + Send + Sync>(&self, key: &str) -> Option<T>
+    where
+        T: Clone,
+    {
+        self.items
+            .lock()
+            .unwrap()
+            .get(key)
+            .and_then(|value| value.downcast_ref::<T>())
+            .cloned()
+    }
+}
+
 /// DecodeResult type alias
 ///
 /// Returns a tuple of the decoded value and the remaining data.
@@ -50,6 +83,26 @@ pub enum Symbol {
         /// NonTerminal has a label as its name.
         label: String,
     },
+}
+
+impl Symbol {
+    /// Display a symbol in a human-readable format.
+    pub fn display_symbol(&self) -> String {
+        self.to_string()
+    }
+
+    /// Get the label of a NonTerminal symbol.
+    pub fn label(&self) -> &str {
+        match self {
+            Symbol::NonTerminal { label } => label,
+            _ => panic!("Cannot call .label() on a Terminal symbol"),
+        }
+    }
+
+    /// Checks if the given symbol is a nonterminal.
+    pub fn is_nonterminal(&self) -> bool {
+        matches!(self, Symbol::NonTerminal { .. })
+    }
 }
 
 impl fmt::Display for Symbol {
@@ -104,4 +157,11 @@ pub fn nt(label: &str) -> Symbol {
     Symbol::NonTerminal {
         label: label.to_string(),
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_failure() {}
 }
