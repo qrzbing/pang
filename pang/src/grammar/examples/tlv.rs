@@ -64,6 +64,6 @@ pub fn asn1_tlv_grammar() -> Grammar {
         "asn1-tlv-len" => vec![
             exp(vec![t_ber()])
         ],
-        "asn1-tlv-value" => vec![exp(vec![t_length_is("len")])],
+        "asn1-tlv-value" => vec![exp(vec![t_length_is("asn1-tlv-len")])],
     )
 }

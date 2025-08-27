@@ -95,10 +95,8 @@ impl BerLengthTerminal {
     }
 
     ///
-    pub fn from_bytes(inp: &[u8]) -> Self {
-        let (_, val) = ber_to_usize(inp).expect("BER length parsing failed");
-
-        Self { value: val }
+    pub fn from_usize(value: usize) -> Self {
+        Self { value }
     }
 }
 
@@ -119,11 +117,15 @@ impl TerminalKind for BerLengthTerminal {
 
     fn parse<'a>(
         &self,
-        _input: &'a [u8],
+        input: &'a [u8],
         _state: &SharedState,
         _context: &BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
-        todo!("Implement it later.")
+        let (remaining_input, value) = ber_to_usize(input)?;
+        Ok((
+            remaining_input,
+            Arc::new(BerLengthTerminal::from_usize(value)),
+        ))
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -139,7 +141,7 @@ impl TerminalKind for BerLengthTerminal {
     }
 
     fn hash_dyn(&self, state: &mut dyn Hasher) {
-        state.write(b"BytesTerminal");
+        state.write(b"BerLengthTerminal");
         state.write(&self.value.to_be_bytes());
     }
 

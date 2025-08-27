@@ -209,7 +209,10 @@ mod tests {
     use std::sync::Once;
 
     use crate::{
-        grammar::examples::tlv::tlv_grammar,
+        grammar::{
+            asn1_tlv_grammar,
+            examples::tlv::{nest_tlv_grammar, tlv_grammar},
+        },
         parser::{FormatParser, Parser},
     };
 
@@ -222,10 +225,55 @@ mod tests {
     }
 
     #[test]
-    fn test_parser() {
+    fn test_tlv_grammar() {
         setup_logger();
         let parser = FormatParser::new(tlv_grammar(), "start");
         let input = &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08];
+        let result = parser.parse_first(input).unwrap();
+        assert_eq!(result.to_bytes(), input);
+    }
+
+    #[test]
+    fn test_nest_tlv_grammar() {
+        setup_logger();
+        let parser = FormatParser::new(nest_tlv_grammar(), "start");
+        let input = &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08];
+        let result = parser.parse_first(input).unwrap();
+        assert_eq!(result.to_bytes(), input);
+
+        let input = &[
+            0x01, 0x00, 0x00, 0x00, // type
+            0x00, 0x00, 0x00, 0x09, // length
+            0x01, 0x00, 0x00, 0x00, // nest-type
+            0x00, 0x00, 0x00, 0x01, // nest-length
+            0x01, // nest-value
+        ];
+        let result = parser.parse_first(input).unwrap();
+        assert_eq!(result.to_bytes(), input);
+
+        let input = &[
+            0x01, 0x00, 0x00, 0x00, // type
+            0x00, 0x00, 0x00, 0x18, // length
+            0x01, 0x00, 0x00, 0x00, // nest-type
+            0x00, 0x00, 0x00, 0x10, // nest-length
+            0x01, 0x00, 0x00, 0x00, // nest-nest-type
+            0x00, 0x00, 0x00, 0x08, // nest-nest-length
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, // nest-nest-value
+        ];
+        let result = parser.parse_first(input).unwrap();
+        assert_eq!(result.to_bytes(), input);
+    }
+
+    #[test]
+    fn test_asn1_grammar() {
+        setup_logger();
+        let parser = FormatParser::new(asn1_tlv_grammar(), "asn1-tlv");
+
+        let input = &[0x02, 0x01, 0x00];
+        let result = parser.parse_first(input).unwrap();
+        assert_eq!(result.to_bytes(), input);
+
+        let input = &[0x05, 0x00];
         let result = parser.parse_first(input).unwrap();
         assert_eq!(result.to_bytes(), input);
     }

@@ -12,7 +12,10 @@ impl FormatParser {
         parent_context: &BTreeMap<String, Arc<DerivationTree>>,
         mode: ParseMode,
     ) -> DecodeResult<'a, Vec<(&'a [u8], Arc<DerivationTree>)>> {
-        let expansions = self.grammar.get(label).expect("No Expansion found.");
+        let expansions = self
+            .grammar
+            .get(label)
+            .expect(&format!("No Expansion found for {}.", label));
 
         // Collect all successful parses
         let mut successful_parses = Vec::new();
@@ -20,7 +23,7 @@ impl FormatParser {
         // Try all possible expansions
         for expansion in expansions {
             if let Ok((remain_input, children)) =
-                self.parse_expansion_with_mode(input, label, expansion, parent_context, mode)
+                self.parse_expansion_with_mode(input, expansion, parent_context, mode)
             {
                 let node = new_node(nt(label), Some(children));
                 successful_parses.push((remain_input, node));
@@ -44,7 +47,6 @@ impl FormatParser {
     fn parse_expansion_with_mode<'a>(
         &'a self,
         input: &'a [u8],
-        _label: &str,
         expansion: &Expansion,
         parent_context: &BTreeMap<String, Arc<DerivationTree>>,
         mode: ParseMode,
