@@ -203,3 +203,30 @@ impl FormatParser {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Once;
+
+    use crate::{
+        grammar::examples::tlv::tlv_grammar,
+        parser::{FormatParser, Parser},
+    };
+
+    static INIT: Once = Once::new();
+
+    fn setup_logger() {
+        INIT.call_once(|| {
+            let _ = env_logger::try_init();
+        });
+    }
+
+    #[test]
+    fn test_parser() {
+        setup_logger();
+        let parser = FormatParser::new(tlv_grammar(), "start");
+        let input = &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08];
+        let result = parser.parse_first(input).unwrap();
+        assert_eq!(result.to_bytes(), input);
+    }
+}

@@ -4,7 +4,9 @@ use rand::{Rng, rngs::ThreadRng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind},
+    symbol::{
+        DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind, traits::HasLength,
+    },
     tree::{DerivationTree, new_node},
 };
 
@@ -36,7 +38,7 @@ pub fn usize_to_ber_bytes(len: usize) -> Vec<u8> {
 ///
 pub fn ber_to_usize(input: &[u8]) -> DecodeResult<usize> {
     if input.is_empty() {
-        return Err(DecodeError::Incomplete);
+        return Err(DecodeError::Incomplete("Input is empty"));
     }
 
     let first_byte = input[0];
@@ -48,7 +50,7 @@ pub fn ber_to_usize(input: &[u8]) -> DecodeResult<usize> {
         // // Long form (MSB is 1)
         let num_len_bytes = (first_byte & 0x7F) as usize;
         if num_len_bytes == 0 {
-            return Err(DecodeError::InvalidData(
+            return Err(DecodeError::Invalid(
                 "Invalid BER long form: number of length bytes cannot be zero",
             ));
         }
@@ -56,7 +58,9 @@ pub fn ber_to_usize(input: &[u8]) -> DecodeResult<usize> {
         // Check if the actual number of bytes matches the number advertised.
         // The total length of the slice should be 1 (for the initial byte) + num_len_bytes.
         if input.len() < 1 + num_len_bytes {
-            return Err(DecodeError::Incomplete);
+            return Err(DecodeError::Incomplete(
+                "Input length too short for BER long form",
+            ));
         }
 
         let len_bytes = &input[1..1 + num_len_bytes];
@@ -69,7 +73,9 @@ pub fn ber_to_usize(input: &[u8]) -> DecodeResult<usize> {
     };
 
     if input.len() < field_len {
-        return Err(DecodeError::Incomplete);
+        return Err(DecodeError::Incomplete(
+            "Input length too short for BER field",
+        ));
     }
 
     let remaining = &input[field_len..];
@@ -135,6 +141,16 @@ impl TerminalKind for BerLengthTerminal {
     fn hash_dyn(&self, state: &mut dyn Hasher) {
         state.write(b"BytesTerminal");
         state.write(&self.value.to_be_bytes());
+    }
+
+    fn as_has_length(&self) -> Option<&dyn HasLength> {
+        Some(self)
+    }
+}
+
+impl HasLength for BerLengthTerminal {
+    fn as_length(&self) -> Option<usize> {
+        Some(self.value)
     }
 }
 

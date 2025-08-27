@@ -10,24 +10,24 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-///
 pub mod terminals;
 use terminals::TerminalKind;
+pub mod traits;
 
 /// Decode error types.
 #[derive(Debug, PartialEq)]
 pub enum DecodeError {
     /// Incomplete data
-    Incomplete,
+    Incomplete(&'static str),
     /// Invalid data format
-    InvalidData(&'static str),
+    Invalid(&'static str),
 }
 
 impl fmt::Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DecodeError::Incomplete => write!(f, "Incomplete data"),
-            DecodeError::InvalidData(msg) => write!(f, "Invalid data: {}", msg),
+            DecodeError::Incomplete(msg) => write!(f, "Incomplete data: {}", msg),
+            DecodeError::Invalid(msg) => write!(f, "Invalid data: {}", msg),
         }
     }
 }
@@ -157,11 +157,4 @@ pub fn nt(label: &str) -> Symbol {
     Symbol::NonTerminal {
         label: label.to_string(),
     }
-}
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn test_failure() {}
 }

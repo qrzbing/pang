@@ -1,3 +1,5 @@
+use log::debug;
+
 use super::*;
 
 use crate::symbol::{DecodeError, DecodeResult, Symbol, nt};
@@ -31,7 +33,9 @@ impl FormatParser {
         }
 
         if successful_parses.is_empty() {
-            Err(DecodeError::Incomplete)
+            Err(DecodeError::Incomplete(
+                "No successful parse found in FormatParser",
+            ))
         } else {
             Ok((input, successful_parses))
         }
@@ -120,12 +124,18 @@ impl FormatParser {
                                 }
                             }
 
-                            best_parse.ok_or(DecodeError::Incomplete)
+                            best_parse.ok_or(DecodeError::Incomplete(
+                                "No best parse found in forest mode.",
+                            ))
                         }
                     }
                 })
             }
-            Symbol::Terminal { kind } => self.parse_terminal(input, kind, symbol, context),
+            Symbol::Terminal { kind } => {
+                let res = self.parse_terminal(input, kind, symbol, context);
+                debug!("Parse terminal result: {:?}", res);
+                res
+            }
         }
     }
 

@@ -4,7 +4,9 @@ use rand::{RngCore, rngs::ThreadRng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind},
+    symbol::{
+        DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind, traits::HasLength,
+    },
     tree::{DerivationTree, new_node},
 };
 
@@ -61,7 +63,9 @@ impl TerminalKind for BytesTerminal {
     ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
         assert_ne!(self.size, 0);
         if input.len() < self.size {
-            return Err(DecodeError::Incomplete);
+            return Err(DecodeError::Incomplete(
+                "Input length is less than expected size",
+            ));
         }
         let (consumed_slice, remaining_input) = input.split_at(self.size);
         Ok((
@@ -85,6 +89,23 @@ impl TerminalKind for BytesTerminal {
     fn hash_dyn(&self, state: &mut dyn Hasher) {
         state.write(b"BytesTerminal");
         state.write(&self.value);
+    }
+
+    fn as_has_length(&self) -> Option<&dyn HasLength> {
+        Some(self)
+    }
+}
+
+impl HasLength for BytesTerminal {
+    fn as_length(&self) -> Option<usize> {
+        if self.value.is_empty() {
+            return None;
+        }
+        let mut buf = [0u8; size_of::<usize>()];
+        let buf_len = buf.len();
+        let len = self.value.len().min(buf_len);
+        buf[buf_len - len..].copy_from_slice(&self.value[..len]);
+        Some(usize::from_be_bytes(buf))
     }
 }
 

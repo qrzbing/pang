@@ -4,7 +4,7 @@ use std::{fmt, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::symbol::Symbol;
+use crate::symbol::{Symbol, terminals::TerminalKind};
 
 // pub mod decoder;
 // use decoder::{CustomDecoderFn, NodeValue};
@@ -358,6 +358,23 @@ impl DerivationTree {
                 current_path.push(i);
                 child.find_all_recursive(symbol, current_path, results);
                 current_path.pop();
+            }
+        }
+    }
+
+    /// Return children first [`TerminalKind`]
+    pub fn first_terminal_kind(&self) -> Option<Arc<dyn TerminalKind>> {
+        match &self.symbol {
+            Symbol::Terminal { kind } => Some(kind.clone()),
+            Symbol::NonTerminal { .. } => {
+                if let Some(children) = &self.children {
+                    // Search through children and return the first match found
+                    children
+                        .iter()
+                        .find_map(|child| child.first_terminal_kind())
+                } else {
+                    None
+                }
             }
         }
     }

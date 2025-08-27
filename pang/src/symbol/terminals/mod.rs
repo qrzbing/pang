@@ -1,10 +1,15 @@
-// !
+//! # Terminal
+//! 
+//! Terminal can not expand, but it can *genrate* a new value, or *parse* an input to a Terminal.
+//! 
+//! This module contains some exmaples of terminals.
+
 use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hasher, sync::Arc};
 
 use rand::rngs::ThreadRng;
 
 use crate::{
-    symbol::{DecodeResult, SharedState},
+    symbol::{DecodeResult, SharedState, traits::HasLength},
     tree::DerivationTree,
 };
 
@@ -43,4 +48,10 @@ pub trait TerminalKind: Debug + Send + Sync {
         state: &SharedState,
         context: &BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<dyn TerminalKind>>;
+
+    /// Convert a Terminal to a [`HasLength`] trait object.
+    /// By default, returns `None`.
+    fn as_has_length(&self) -> Option<&dyn HasLength> {
+        None
+    }
 }
