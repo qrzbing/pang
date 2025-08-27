@@ -1,10 +1,12 @@
 use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
-use rand::{RngCore, rngs::ThreadRng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
+    symbol::{
+        DecodeResult, SharedState, Symbol,
+        terminals::{DynRand, TerminalKind},
+    },
     tree::{DerivationTree, new_node},
 };
 
@@ -47,7 +49,7 @@ impl TerminalKind for BitsTerminal {
         }
     }
 
-    fn generate(&self, rng: &mut ThreadRng) -> Arc<DerivationTree> {
+    fn generate(&self, rng: &mut dyn DynRand) -> Arc<DerivationTree> {
         let mut generate_bytes = vec![0u8; self.size];
         rng.fill_bytes(&mut generate_bytes);
         new_node(t_bits(self.size), Some(vec![]))

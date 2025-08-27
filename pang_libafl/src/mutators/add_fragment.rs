@@ -13,7 +13,7 @@ use libafl::{
 use libafl_bolts::{Error, Named, rands::Rand};
 
 use log::debug;
-use pang::{grammar::Symbol, parser::Parser, tree::DerivationTree};
+use pang::{parser::Parser, symbol::Symbol, tree::DerivationTree};
 
 use crate::{input::PangInput, mutators::PangHelper, state::PangMutateState};
 
@@ -131,7 +131,6 @@ where
                         return Arc::new(DerivationTree {
                             symbol: tree.symbol.clone(),
                             children: Some(new_children),
-                            value: None,
                         });
                     }
                 }
@@ -159,7 +158,6 @@ where
                     Some(Arc::new(DerivationTree {
                         symbol: tree.symbol.clone(),
                         children: Some(new_children),
-                        value: None,
                     }))
                 } else {
                     None

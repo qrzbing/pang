@@ -2,6 +2,7 @@
 
 use std::{collections::HashMap, sync::Arc};
 
+use libafl_bolts::rands::StdRand;
 use rand::Rng;
 
 use crate::{
@@ -42,7 +43,7 @@ fn expansion_to_children(expansion: &Expansion) -> Vec<Arc<DerivationTree>> {
         .map(|symbol| match symbol.clone() {
             s @ Symbol::NonTerminal { .. } => new_node(s, None),
             ref _s @ Symbol::Terminal { ref kind } => {
-                let mut rng = rand::rng();
+                let mut rng = StdRand::with_seed(0);
                 kind.generate(&mut rng)
             }
         })

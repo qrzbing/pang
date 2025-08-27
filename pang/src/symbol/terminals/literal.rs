@@ -5,11 +5,13 @@ use std::{
     sync::Arc,
 };
 
-use rand::rngs::ThreadRng;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
+    symbol::{
+        DecodeResult, SharedState, Symbol,
+        terminals::{DynRand, TerminalKind},
+    },
     tree::{DerivationTree, new_node},
 };
 
@@ -37,7 +39,7 @@ impl TerminalKind for LiteralTerminal {
         Ok(self.value.as_bytes().to_vec())
     }
 
-    fn generate(&self, _rng: &mut ThreadRng) -> Arc<DerivationTree> {
+    fn generate(&self, _rng: &mut dyn DynRand) -> Arc<DerivationTree> {
         new_node(t(&self.value), Some(vec![]))
     }
 

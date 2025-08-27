@@ -1,10 +1,12 @@
 use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
-use rand::{Rng, RngCore, rngs::ThreadRng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
+    symbol::{
+        DecodeResult, SharedState, Symbol,
+        terminals::{DynRand, TerminalKind},
+    },
     tree::{DerivationTree, new_node},
 };
 
@@ -48,8 +50,8 @@ impl TerminalKind for DynamicTerminal {
         }
     }
 
-    fn generate(&self, rng: &mut ThreadRng) -> Arc<DerivationTree> {
-        let size = rng.random_range(8..=16);
+    fn generate(&self, rng: &mut dyn DynRand) -> Arc<DerivationTree> {
+        let size = rng.between(8, 16);
         let mut generate_bytes = vec![0u8; size];
         rng.fill_bytes(&mut generate_bytes);
         new_node(

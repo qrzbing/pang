@@ -11,12 +11,7 @@ use libafl::{
 };
 use libafl_bolts::{Error, Named, rands::Rand};
 
-use pang::{
-    generator::Generator,
-    grammar::{Symbol, TerminalKind},
-    parser::Parser,
-    tree::DerivationTree,
-};
+use pang::{generator::Generator, parser::Parser, symbol::Symbol, tree::DerivationTree};
 
 use crate::{input::PangInput, mutators::PangHelper, state::PangMutateState};
 
@@ -52,23 +47,25 @@ where
     }
 }
 
-fn regenerate_node_at<P: Parser>(
+fn regenerate_node_at<P: Parser, R: Rand>(
     parser: &P,
     generator: &Generator,
     tree: Arc<DerivationTree>,
     target: usize,
+    rng: &mut R,
 ) -> Arc<DerivationTree> {
     struct RegenerateContext {
         position: usize,
         regenerated: bool,
     }
 
-    fn do_regenerate<P: Parser>(
+    fn do_regenerate<P: Parser, R: Rand>(
         parser: &P,
         generator: &Generator,
         tree: Arc<DerivationTree>,
         target: usize,
         ctx: &mut RegenerateContext,
+        rng: &mut R,
     ) -> Arc<DerivationTree> {
         // Skip excluded nodes
         if parser.is_excluded(&tree.symbol) {
@@ -84,13 +81,7 @@ fn regenerate_node_at<P: Parser>(
                 Symbol::NonTerminal { label } => {
                     return generator.generate_from_symbol(label);
                 }
-                Symbol::Terminal { kind } => match kind {
-                    TerminalKind::Binary(_bin_kind) => {
-                        // TODO: Regenerate binary values
-                        return tree;
-                    }
-                    TerminalKind::Literal(..) => return tree,
-                },
+                Symbol::Terminal { kind } => return kind.generate(rng),
             }
         }
 
@@ -98,7 +89,7 @@ fn regenerate_node_at<P: Parser>(
             if !ctx.regenerated {
                 let new_children: Vec<_> = children
                     .iter()
-                    .map(|child| do_regenerate(parser, generator, child.clone(), target, ctx))
+                    .map(|child| do_regenerate(parser, generator, child.clone(), target, ctx, rng))
                     .collect();
 
                 if children
@@ -109,7 +100,6 @@ fn regenerate_node_at<P: Parser>(
                     return Arc::new(DerivationTree {
                         symbol: tree.symbol.clone(),
                         children: Some(new_children),
-                        value: None,
                     });
                 }
             }
@@ -122,7 +112,7 @@ fn regenerate_node_at<P: Parser>(
         position: 0,
         regenerated: false,
     };
-    do_regenerate(parser, generator, tree, target, &mut ctx)
+    do_regenerate(parser, generator, tree, target, &mut ctx, rng)
 }
 
 impl<P, S> Mutator<PangInput, S> for RegenerateFragmentMutator<P>
@@ -153,11 +143,14 @@ where
             return Ok(MutationResult::Skipped);
         }
 
-        let target_node_idx = state.rand_mut().between(1, n_nodes);
+        let rng = state.rand_mut();
+
+        let target_node_idx = rng.between(1, n_nodes);
 
         let generator = self.generator.lock().unwrap();
 
-        let new_tree = regenerate_node_at(&*parser, &*generator, tree.clone(), target_node_idx);
+        let new_tree =
+            regenerate_node_at(&*parser, &*generator, tree.clone(), target_node_idx, rng);
 
         let new_bytes = new_tree.to_bytes();
         if new_bytes.is_empty() || new_bytes == input.bytes {

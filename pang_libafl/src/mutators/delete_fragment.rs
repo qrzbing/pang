@@ -140,7 +140,6 @@ where
             return Arc::new(DerivationTree {
                 symbol: tree.symbol.clone(),
                 children: Some(Vec::new()),
-                value: tree.value.clone(),
             });
         }
 
@@ -163,7 +162,6 @@ where
                     Some(Arc::new(DerivationTree {
                         symbol: tree.symbol.clone(),
                         children: Some(new_children),
-                        value: None,
                     }))
                 } else {
                     None

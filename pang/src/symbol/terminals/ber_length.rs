@@ -1,11 +1,12 @@
 use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
-use rand::{Rng, rngs::ThreadRng};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     symbol::{
-        DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind, traits::HasLength,
+        DecodeError, DecodeResult, SharedState, Symbol,
+        terminals::{DynRand, TerminalKind},
+        traits::HasLength,
     },
     tree::{DerivationTree, new_node},
 };
@@ -110,8 +111,8 @@ impl TerminalKind for BerLengthTerminal {
         Ok(usize_to_ber_bytes(self.value))
     }
 
-    fn generate(&self, rng: &mut ThreadRng) -> Arc<DerivationTree> {
-        let _new_size = rng.random_range(0..0x7f);
+    fn generate(&self, rng: &mut dyn DynRand) -> Arc<DerivationTree> {
+        let _new_size = rng.below_or_zero(0x7f);
         new_node(t_ber(), Some(vec![]))
     }
 

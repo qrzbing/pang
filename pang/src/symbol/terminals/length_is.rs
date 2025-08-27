@@ -1,11 +1,13 @@
 use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
 use log::debug;
-use rand::rngs::ThreadRng;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind},
+    symbol::{
+        DecodeError, DecodeResult, SharedState, Symbol,
+        terminals::{DynRand, TerminalKind},
+    },
     tree::DerivationTree,
 };
 
@@ -54,7 +56,7 @@ impl TerminalKind for LengthIsTerminal {
         }
     }
 
-    fn generate(&self, _rng: &mut ThreadRng) -> Arc<DerivationTree> {
+    fn generate(&self, _rng: &mut dyn DynRand) -> Arc<DerivationTree> {
         todo!("Implement it later.")
     }
 

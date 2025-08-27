@@ -30,7 +30,7 @@ use libafl_bolts::{
 };
 use log::{debug, warn};
 
-use pang::{generator::Generator, grammar::Symbol, parser::Parser, tree::DerivationTree};
+use pang::{generator::Generator, parser::Parser, symbol::Symbol, tree::DerivationTree};
 
 use crate::{input::PangInput, state::PangMutateState};
 
