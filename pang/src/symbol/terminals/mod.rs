@@ -22,8 +22,6 @@ pub mod bytes;
 ///
 pub mod dynamic;
 ///
-pub mod length_is;
-///
 pub mod literal;
 
 ///

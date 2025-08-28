@@ -9,23 +9,25 @@
 /// ```
 /// use pang::grammar;
 /// use pang::{
-///     grammar::exp,
+///     grammar::{exp, exp_with_opts},
+///     opts,
 ///     symbol::{
 ///         nt,
-///         terminals::{bytes::t_bytes, length_is::t_length_is},
+///         terminals::{bytes::t_bytes, dynamic::t_dyn},
 ///     },
 /// };
 ///
-/// let tlv_rammar = grammar! {
-///    "start" => vec![exp(vec![nt("tlv")])],
-///    "tlv" => vec![exp(vec![nt("type"), nt("len"), nt("value")])],
-///    "type" => vec![exp(vec![t_bytes(4)])],
-///    "len" => vec![exp(vec![t_bytes(4)])],
-///    "value" => vec![
-///        exp(
-///            vec![t_length_is("len")]
-///        )
-///    ],
+/// let tlv_grammar = grammar! {
+///     "start" => vec![exp(vec![nt("tlv")])],
+///     "tlv" => vec![exp(vec![nt("type"), nt("len"), nt("value")])],
+///     "type" => vec![exp(vec![t_bytes(4)])],
+///     "len" => vec![exp(vec![t_bytes(4)])],
+///     "value" => vec![
+///         exp_with_opts(
+///             vec![t_dyn()],
+///             opts!("length_is" => "len")
+///         )
+///     ],
 /// };
 /// ```
 #[macro_export]

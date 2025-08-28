@@ -28,8 +28,13 @@ pub type GrammarOptions = BTreeMap<String, GrammarOptionValue>;
 pub fn exp(symbols: Vec<Symbol>) -> Expansion {
     Expansion {
         symbols,
-        // options: GrammarOptions::new(),
+        options: GrammarOptions::new(),
     }
+}
+
+/// Create a new Expansion with options.
+pub fn exp_with_opts(symbols: Vec<Symbol>, options: GrammarOptions) -> Expansion {
+    Expansion { symbols, options }
 }
 
 // /// Create a new Expansion with options.
@@ -42,8 +47,8 @@ pub fn exp(symbols: Vec<Symbol>) -> Expansion {
 pub struct Expansion {
     /// Symbols in the expansion.
     pub symbols: Vec<Symbol>,
-    // /// Options for the expansion.
-    // pub options: GrammarOptions,
+    /// Options for the expansion.
+    pub options: GrammarOptions,
 }
 
 impl Expansion {

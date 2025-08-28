@@ -39,7 +39,7 @@ impl DynamicTerminal {
 #[typetag::serde]
 impl TerminalKind for DynamicTerminal {
     fn display_terminal(&self) -> String {
-        format!("Bytes[{}]", self.length)
+        format!("Dyn[{}]", self.length)
     }
 
     fn encode(&self) -> Result<Vec<u8>, String> {
@@ -64,11 +64,13 @@ impl TerminalKind for DynamicTerminal {
 
     fn parse<'a>(
         &self,
-        _input: &'a [u8],
+        input: &'a [u8],
         _state: &SharedState,
         _context: &BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
-        todo!("Implement it later.")
+        // In DynamicTerminal, we don't need to parse anything.
+        // Consume all the input and return the terminal.
+        Ok((b"", Arc::new(DynamicTerminal::from_bytes(input))))
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -89,7 +91,7 @@ impl TerminalKind for DynamicTerminal {
     }
 }
 
-///
+/// This is just a Symbol.
 pub fn t_dyn() -> Symbol {
     Symbol::Terminal {
         kind: Arc::new(DynamicTerminal::new()),

@@ -9,10 +9,9 @@ use std::{
 
 use crate::{grammar::Grammar, symbol::Symbol, tree::DerivationTree};
 
-pub mod format;
-pub use format::FormatParser;
-// pub mod language;
-// pub use language::EarleyParser;
+pub mod combinator;
+pub mod expansion;
+pub mod factory;
 
 /// Region contains a range of positions that is partially parsed.
 #[derive(Debug, Clone, Copy, Eq)]
