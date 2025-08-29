@@ -1,8 +1,4 @@
-use std::{
-    borrow::Cow,
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::{borrow::Cow, collections::HashMap, sync::Arc};
 
 use libafl::{
     HasMetadata,
@@ -13,7 +9,7 @@ use libafl::{
 use libafl_bolts::{Error, Named, rands::Rand};
 
 use log::debug;
-use pang::{parser::Parser, symbol::Symbol, tree::DerivationTree};
+use pang::{language::Language, symbol::Symbol, tree::DerivationTree};
 
 use crate::{input::PangInput, mutators::PangHelper, state::PangMutateState};
 
@@ -21,21 +17,15 @@ use crate::{input::PangInput, mutators::PangHelper, state::PangMutateState};
 ///
 /// Select a leaf node and replace it with a random fragment from the pool.
 #[derive(Debug)]
-pub struct SwapFragmentMutator<P>
-where
-    P: Parser + Send + Sync + 'static,
-{
-    parser: Arc<Mutex<P>>,
+pub struct SwapFragmentMutator {
+    lang: Arc<Language>,
 }
 
-impl<P> SwapFragmentMutator<P>
-where
-    P: Parser + Send + Sync + 'static,
-{
+impl SwapFragmentMutator {
     /// Creates a new [`SwapFragmentMutator`]
     #[must_use]
-    pub fn new(parser: Arc<Mutex<P>>) -> Self {
-        Self { parser }
+    pub fn new(lang: &Arc<Language>) -> Self {
+        Self { lang: lang.clone() }
     }
 
     fn swap_region<S>(&self, state: &mut S, input: &mut PangInput) -> Result<MutationResult, Error>
@@ -99,10 +89,7 @@ where
     }
 }
 
-impl<P> Named for SwapFragmentMutator<P>
-where
-    P: Parser + Send + Sync + 'static,
-{
+impl Named for SwapFragmentMutator {
     fn name(&self) -> &Cow<'static, str> {
         &Cow::Borrowed("SwapFragmentMutator")
     }
@@ -129,15 +116,14 @@ fn try_swap_fragment<R: Rand>(
 
 /// Swap a node at the specified target position with a random fragment
 /// Returns a new tree with the node replaced, or original tree if no swap occurred
-fn swap_node<P, R>(
-    parser: &P,
+fn swap_node<R>(
+    lang: &Language,
     tree: Arc<DerivationTree>,
     fragments: &HashMap<String, Vec<Arc<DerivationTree>>>,
     target: usize,
     rng: &mut R,
 ) -> Arc<DerivationTree>
 where
-    P: Parser,
     R: Rand,
 {
     // Context to track current position and whether swap has occurred
@@ -147,8 +133,8 @@ where
     }
 
     // Recursive helper function to traverse tree and perform swap at target position
-    fn do_swap<P, R>(
-        parser: &P,
+    fn do_swap<R>(
+        lang: &Language,
         tree: Arc<DerivationTree>,
         fragments: &HashMap<String, Vec<Arc<DerivationTree>>>,
         target: usize,
@@ -156,11 +142,10 @@ where
         ctx: &mut SwapContext,
     ) -> Arc<DerivationTree>
     where
-        P: Parser,
         R: Rand,
     {
         // Skip excluded nodes
-        if parser.is_excluded(&tree.symbol) {
+        if lang.is_excluded(&tree.symbol) {
             return tree;
         }
 
@@ -179,7 +164,7 @@ where
             .and_then(|children| {
                 let new_children: Vec<_> = children
                     .iter()
-                    .map(|child| do_swap(parser, child.clone(), fragments, target, rng, ctx))
+                    .map(|child| do_swap(lang, child.clone(), fragments, target, rng, ctx))
                     .collect();
 
                 // Create new tree only if any child was modified
@@ -203,12 +188,11 @@ where
         position: 0,
         swapped: false,
     };
-    do_swap(parser, tree, fragments, target, rng, &mut ctx)
+    do_swap(lang, tree, fragments, target, rng, &mut ctx)
 }
 
-impl<P, S> Mutator<PangInput, S> for SwapFragmentMutator<P>
+impl<S> Mutator<PangInput, S> for SwapFragmentMutator
 where
-    P: Parser + Send + Sync,
     S: HasRand + HasMetadata,
 {
     fn mutate(&mut self, state: &mut S, input: &mut PangInput) -> Result<MutationResult, Error> {
@@ -218,7 +202,7 @@ where
             .expect("PangMutateState not found");
 
         if pang_state.add_seen_seed(input) {
-            PangHelper::add_to_fragment_pool(self.parser.clone(), pang_state, input);
+            PangHelper::add_to_fragment_pool(&self.lang, pang_state, input);
         }
 
         if !input.has_structure && input.has_regions {
@@ -229,14 +213,12 @@ where
             return Ok(MutationResult::Skipped);
         }
 
-        let parser = self.parser.lock().unwrap();
-
         let tree = match &input.structure {
             Some(tree) => tree,
             None => return Ok(MutationResult::Skipped),
         };
 
-        let n_nodes = PangHelper::count_nodes(&*parser, tree);
+        let n_nodes = PangHelper::count_nodes(&self.lang, tree);
 
         if n_nodes <= 1 {
             return Ok(MutationResult::Skipped);
@@ -253,7 +235,7 @@ where
         let to_swap = rng.between(2, n_nodes);
 
         let new_tree = swap_node(
-            &*parser,
+            &self.lang,
             tree.clone(),
             &fragments,
             to_swap,

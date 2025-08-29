@@ -112,9 +112,9 @@ impl Expansion {
 mod tests {
     use std::sync::Once;
 
-    use crate::grammar::{
-        asn1_tlv_grammar,
-        examples::tlv::{nest_tlv_grammar, tlv_grammar},
+    use crate::language::{
+        asn1_tlv_lang,
+        examples::tlv::{nest_tlv_lang, tlv_lang},
     };
 
     static INIT: Once = Once::new();
@@ -126,20 +126,20 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_tlv_grammar() {
+    fn test_parse_tlv_lang() {
         setup_logger();
         let input = &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08];
-        let grammar = tlv_grammar();
-        let tree = grammar.parse_combinator(input, "start").unwrap();
+        let lang = tlv_lang();
+        let tree = lang.parse(input).unwrap();
         assert_eq!(tree.to_bytes(), input);
     }
 
     #[test]
-    fn test_parse_nest_tlv_grammar() {
+    fn test_parse_nest_tlv_lang() {
         setup_logger();
-        let grammar = nest_tlv_grammar();
+        let lang = nest_tlv_lang();
         let input = &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08];
-        let tree = grammar.parse_combinator(input, "start").unwrap();
+        let tree = lang.parse(input).unwrap();
         assert_eq!(tree.to_bytes(), input);
 
         let input = &[
@@ -149,7 +149,7 @@ mod tests {
             0x00, 0x00, 0x00, 0x01, // nest-length
             0x01, // nest-value
         ];
-        let tree = grammar.parse_combinator(input, "start").unwrap();
+        let tree = lang.parse(input).unwrap();
         assert_eq!(tree.to_bytes(), input);
 
         let input = &[
@@ -161,21 +161,21 @@ mod tests {
             0x00, 0x00, 0x00, 0x08, // nest-nest-length
             0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, // nest-nest-value
         ];
-        let tree = grammar.parse_combinator(input, "start").unwrap();
+        let tree = lang.parse(input).unwrap();
         assert_eq!(tree.to_bytes(), input);
     }
 
     #[test]
-    fn test_parse_asn1_grammar() {
+    fn test_parse_asn1_lang() {
         setup_logger();
-        let grammar = asn1_tlv_grammar();
+        let lang = asn1_tlv_lang();
 
         let input = &[0x02, 0x01, 0x00];
-        let tree = grammar.parse_combinator(input, "asn1-tlv").unwrap();
+        let tree = lang.parse(input).unwrap();
         assert_eq!(tree.to_bytes(), input);
 
         let input = &[0x05, 0x00];
-        let tree = grammar.parse_combinator(input, "asn1-tlv").unwrap();
+        let tree = lang.parse(input).unwrap();
         assert_eq!(tree.to_bytes(), input);
     }
 }

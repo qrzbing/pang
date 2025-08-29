@@ -1,8 +1,4 @@
-use std::{
-    borrow::Cow,
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::{borrow::Cow, collections::HashMap, sync::Arc};
 
 use libafl::{
     HasMetadata,
@@ -13,7 +9,7 @@ use libafl::{
 use libafl_bolts::{Error, Named, rands::Rand};
 
 use log::debug;
-use pang::{parser::Parser, symbol::Symbol, tree::DerivationTree};
+use pang::{language::Language, symbol::Symbol, tree::DerivationTree};
 
 use crate::{input::PangInput, mutators::PangHelper, state::PangMutateState};
 
@@ -21,39 +17,27 @@ use crate::{input::PangInput, mutators::PangHelper, state::PangMutateState};
 ///
 /// Select a non-terminal node and add a compatible fragment as a new child.
 #[derive(Debug)]
-pub struct AddFragmentMutator<P>
-where
-    P: Parser + Send + Sync + 'static,
-{
-    parser: Arc<Mutex<P>>,
+pub struct AddFragmentMutator {
+    lang: Arc<Language>,
 }
 
-impl<P> AddFragmentMutator<P>
-where
-    P: Parser + Send + Sync + 'static,
-{
+impl AddFragmentMutator {
     /// Creates a new [`AddFragmentMutator`]
     #[must_use]
-    pub fn new(parser: Arc<Mutex<P>>) -> Self {
-        Self { parser }
+    pub fn new(lang: &Arc<Language>) -> Self {
+        Self { lang: lang.clone() }
     }
 }
 
-impl<P> Named for AddFragmentMutator<P>
-where
-    P: Parser + Send + Sync + 'static,
-{
+impl Named for AddFragmentMutator {
     fn name(&self) -> &Cow<'static, str> {
         &Cow::Borrowed("AddFragmentMutator")
     }
 }
 
 /// Count the number of non-terminal nodes that can accept new children
-fn count_addable_nodes<P>(parser: &P, tree: &DerivationTree) -> usize
-where
-    P: Parser,
-{
-    if parser.is_excluded(&tree.symbol) {
+fn count_addable_nodes(lang: &Language, tree: &DerivationTree) -> usize {
+    if lang.is_excluded(&tree.symbol) {
         return 0;
     }
 
@@ -66,7 +50,7 @@ where
 
     if let Some(children) = &tree.children {
         for child in children {
-            count += count_addable_nodes(parser, child);
+            count += count_addable_nodes(lang, child);
         }
     }
 
@@ -75,15 +59,14 @@ where
 
 /// Add a fragment to a node at the specified target position
 /// Returns a new tree with the fragment added, or original tree if no addition occurred
-fn add_node<P, R>(
-    parser: &P,
+fn add_node<R>(
+    lang: &Language,
     tree: Arc<DerivationTree>,
     fragments: &HashMap<String, Vec<Arc<DerivationTree>>>,
     target: usize,
     rng: &mut R,
 ) -> Arc<DerivationTree>
 where
-    P: Parser,
     R: Rand,
 {
     // Context to track current position and whether addition has occurred
@@ -93,8 +76,8 @@ where
     }
 
     // Recursive helper function to traverse tree and perform addition at target position
-    fn do_add<P, R>(
-        parser: &P,
+    fn do_add<R>(
+        lang: &Language,
         tree: Arc<DerivationTree>,
         fragments: &HashMap<String, Vec<Arc<DerivationTree>>>,
         target: usize,
@@ -102,11 +85,10 @@ where
         ctx: &mut AddContext,
     ) -> Arc<DerivationTree>
     where
-        P: Parser,
         R: Rand,
     {
         // Skip excluded nodes
-        if parser.is_excluded(&tree.symbol) {
+        if lang.is_excluded(&tree.symbol) {
             return tree;
         }
 
@@ -146,7 +128,7 @@ where
             .and_then(|children| {
                 let new_children: Vec<_> = children
                     .iter()
-                    .map(|child| do_add(parser, child.clone(), fragments, target, rng, ctx))
+                    .map(|child| do_add(lang, child.clone(), fragments, target, rng, ctx))
                     .collect();
 
                 // Create new tree only if any child was modified
@@ -170,7 +152,7 @@ where
         position: 0,
         added: false,
     };
-    do_add(parser, tree, fragments, target, rng, &mut ctx)
+    do_add(lang, tree, fragments, target, rng, &mut ctx)
 }
 
 fn add_region_fragment<S>(state: &mut S, input: &mut PangInput) -> Result<MutationResult, Error>
@@ -238,9 +220,8 @@ where
     Ok(MutationResult::Mutated)
 }
 
-impl<P, S> Mutator<PangInput, S> for AddFragmentMutator<P>
+impl<S> Mutator<PangInput, S> for AddFragmentMutator
 where
-    P: Parser + Send + Sync,
     S: HasRand + HasMetadata,
 {
     fn mutate(&mut self, state: &mut S, input: &mut PangInput) -> Result<MutationResult, Error> {
@@ -249,7 +230,7 @@ where
             .expect("PangMutateState not found");
 
         if pang_state.add_seen_seed(input) {
-            PangHelper::add_to_fragment_pool(self.parser.clone(), pang_state, input);
+            PangHelper::add_to_fragment_pool(&self.lang, pang_state, input);
         }
 
         if !input.has_structure && input.has_regions {
@@ -265,9 +246,7 @@ where
             None => return Ok(MutationResult::Skipped),
         };
 
-        let parser = self.parser.lock().unwrap();
-
-        let n_addable = count_addable_nodes(&*parser, tree);
+        let n_addable = count_addable_nodes(&self.lang, tree);
 
         if n_addable == 0 {
             return Ok(MutationResult::Skipped);
@@ -284,7 +263,13 @@ where
         let to_add = rng.between(1, n_addable);
         debug!("Adding fragment at position {}", to_add);
 
-        let new_tree = add_node(&*parser, tree.clone(), &fragments, to_add, state.rand_mut());
+        let new_tree = add_node(
+            &self.lang,
+            tree.clone(),
+            &fragments,
+            to_add,
+            state.rand_mut(),
+        );
 
         let new_bytes = new_tree.to_bytes();
         if input.bytes == new_bytes {

@@ -1,10 +1,14 @@
-//! Some example grammars.
+//! Some example languages.
+
+use std::collections::HashSet;
 
 use crate::{
-    grammar,
-    grammar::{Expansion, Grammar, exp},
+    grammar::{Expansion, exp},
+    language::Language,
     symbol::{nt, terminals::literal::t},
 };
+
+use crate::grammar;
 
 pub mod tlv;
 pub mod xml;
@@ -32,7 +36,7 @@ pub fn srange(chars: &str) -> Vec<Expansion> {
     expansions
 }
 
-/// A simple expression grammar.
+/// A simple expression language.
 ///
 /// ```text
 /// <start>   -> <expr>
@@ -43,8 +47,8 @@ pub fn srange(chars: &str) -> Vec<Expansion> {
 /// <integer> -> <digit> <integer> | <digit>
 /// <digit>   -> "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
 /// ```
-pub fn expr_grammar() -> Grammar {
-    grammar! {
+pub fn expr_lang() -> Language {
+    let grammar = grammar! {
         "start" => vec![
             exp(vec![nt("expr")])
         ],
@@ -70,12 +74,14 @@ pub fn expr_grammar() -> Grammar {
             exp(vec![nt("digit")])
         ],
         "digit" => srange(DIGITS)
-    }
+    };
+
+    Language::new(grammar, "start", HashSet::new())
 }
 
-/// A simple grammar.
-pub fn c_sample_grammar() -> Grammar {
-    grammar! {
+/// A simple language.
+pub fn c_sample_lang() -> Language {
+    let grammar = grammar! {
         "start" => vec![exp(vec![nt("A"), nt("B")])],
         "A" => vec![
             exp(vec![t("a"), nt("B"), t("c")]),
@@ -84,5 +90,7 @@ pub fn c_sample_grammar() -> Grammar {
         "B" => vec![exp(vec![t("b"), nt("C")]), exp(vec![nt("D")])],
         "C" => vec![exp(vec![t("c")])],
         "D" => vec![exp(vec![t("d")])]
-    }
+    };
+
+    Language::new(grammar, "start", HashSet::new())
 }

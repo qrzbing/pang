@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use log::debug;
+
 use crate::{
     grammar::Grammar,
     symbol::Symbol,
@@ -16,11 +18,11 @@ use crate::{
 ///
 /// use libafl_bolts::rands::StdRand;
 ///
-/// use pang::{grammar::asn1_tlv_grammar, tree::fixer::LengthIsFixer};
+/// use pang::{language::asn1_tlv_lang, tree::fixer::LengthIsFixer};
 ///
 /// let mut rng = StdRand::with_seed(0);
 ///
-/// let tree = asn1_tlv_grammar().generate_combinator(
+/// let tree = asn1_tlv_lang().grammar.generate_combinator(
 ///     "asn1-tlv",
 ///     &mut rng,
 ///     &[Arc::new(LengthIsFixer::new())],
@@ -85,7 +87,7 @@ impl TreeFixer for LengthIsFixer {
     /// use std::sync::Arc;
     ///
     /// use pang::{
-    ///     grammar::asn1_tlv_grammar,
+    ///     language::asn1_tlv_lang,
     ///     symbol::{
     ///         nt,
     ///         terminals::{ber_length::t_ber, bytes::t_bytes_val, dynamic::t_dyn_value},
@@ -93,7 +95,7 @@ impl TreeFixer for LengthIsFixer {
     ///     tree::{fixer::LengthIsFixer, new_node},
     /// };
     ///
-    /// let grammar = asn1_tlv_grammar();
+    /// let grammar = asn1_tlv_lang().grammar;
     /// let tree = new_node(
     ///     nt("asn1-tlv"),
     ///     Some(vec![
@@ -123,7 +125,7 @@ impl TreeFixer for LengthIsFixer {
     /// assert_eq!(tlv_len_fixed, "4");
     /// ```
     fn fix(&self, grammar: &Grammar, node: Arc<DerivationTree>) -> Arc<DerivationTree> {
-        // Skip Terminal and NonTerminal without children
+        // Skip Terminal and NonTerminal without children)
         let (Some(children), Symbol::NonTerminal { label }) = (&node.children, &node.symbol) else {
             return node;
         };
@@ -145,6 +147,7 @@ impl TreeFixer for LengthIsFixer {
                     if let Some(len_label) =
                         value_exp.options.get("length_is").and_then(|v| v.as_str())
                     {
+                        debug!("Fix length of {} to {}", value_label, len_label);
                         let actual_length = value_candidate_node.to_bytes().len();
 
                         if let Some(len_node_idx) =

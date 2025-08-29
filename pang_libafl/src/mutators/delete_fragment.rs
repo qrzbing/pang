@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    sync::{Arc, Mutex},
-};
+use std::{borrow::Cow, sync::Arc};
 
 use libafl::{
     HasMetadata,
@@ -10,9 +7,9 @@ use libafl::{
     state::HasRand,
 };
 use libafl_bolts::{Error, Named, rands::Rand};
-
 use log::debug;
-use pang::{parser::Parser, tree::DerivationTree};
+
+use pang::{language::Language, tree::DerivationTree};
 
 use crate::{input::PangInput, mutators::PangHelper, state::PangMutateState};
 
@@ -20,21 +17,15 @@ use crate::{input::PangInput, mutators::PangHelper, state::PangMutateState};
 ///
 /// Select a random node and delete its children (make it a leaf node).
 #[derive(Debug)]
-pub struct DeleteFragmentMutator<P>
-where
-    P: Parser + Send + Sync + 'static,
-{
-    parser: Arc<Mutex<P>>,
+pub struct DeleteFragmentMutator {
+    lang: Arc<Language>,
 }
 
-impl<P> DeleteFragmentMutator<P>
-where
-    P: Parser + Send + Sync + 'static,
-{
+impl DeleteFragmentMutator {
     /// Creates a new [`DeleteFragmentMutator`].
     #[must_use]
-    pub fn new(parser: Arc<Mutex<P>>) -> Self {
-        Self { parser }
+    pub fn new(lang: &Arc<Language>) -> Self {
+        Self { lang: lang.clone() }
     }
 
     fn delete_region<S>(
@@ -89,16 +80,13 @@ where
         input.has_structure = false;
         input.structure = None;
         input.has_regions = false;
-        input.regions = None;
+        // input.regions = None;
 
         Ok(MutationResult::Mutated)
     }
 }
 
-impl<P> Named for DeleteFragmentMutator<P>
-where
-    P: Parser + Send + Sync + 'static,
-{
+impl Named for DeleteFragmentMutator {
     fn name(&self) -> &Cow<'static, str> {
         &Cow::Borrowed("DeleteFragmentMutator")
     }
@@ -106,9 +94,8 @@ where
 
 /// Delete children of a node at the specified target position
 /// Returns a new tree with the node's children deleted, or original tree if no deletion occurred
-fn delete_node<P>(parser: &P, tree: Arc<DerivationTree>, target: usize) -> Arc<DerivationTree>
+fn delete_node(lang: &Language, tree: Arc<DerivationTree>, target: usize) -> Arc<DerivationTree>
 where
-    P: Parser,
 {
     // Context to track current position and whether deletion has occurred
     struct DeleteContext {
@@ -117,17 +104,14 @@ where
     }
 
     // Recursive helper function to traverse tree and perform deletion at target position
-    fn do_delete<P>(
-        parser: &P,
+    fn do_delete(
+        lang: &Language,
         tree: Arc<DerivationTree>,
         target: usize,
         ctx: &mut DeleteContext,
-    ) -> Arc<DerivationTree>
-    where
-        P: Parser,
-    {
+    ) -> Arc<DerivationTree> {
         // Skip excluded nodes
-        if parser.is_excluded(&tree.symbol) {
+        if lang.is_excluded(&tree.symbol) {
             return tree;
         }
 
@@ -150,7 +134,7 @@ where
             .and_then(|children| {
                 let new_children: Vec<_> = children
                     .iter()
-                    .map(|child| do_delete(parser, child.clone(), target, ctx))
+                    .map(|child| do_delete(lang, child.clone(), target, ctx))
                     .collect();
 
                 // Create new tree only if any child was modified
@@ -174,12 +158,11 @@ where
         position: 0,
         deleted: false,
     };
-    do_delete(parser, tree, target, &mut ctx)
+    do_delete(lang, tree, target, &mut ctx)
 }
 
-impl<P, S> Mutator<PangInput, S> for DeleteFragmentMutator<P>
+impl<S> Mutator<PangInput, S> for DeleteFragmentMutator
 where
-    P: Parser + Send + Sync,
     S: HasRand + HasMetadata,
 {
     fn mutate(&mut self, state: &mut S, input: &mut PangInput) -> Result<MutationResult, Error> {
@@ -189,7 +172,7 @@ where
             .expect("PangMutateState not found");
 
         if pang_state.add_seen_seed(input) {
-            PangHelper::add_to_fragment_pool(self.parser.clone(), pang_state, input);
+            PangHelper::add_to_fragment_pool(&self.lang, pang_state, input);
         }
 
         if !input.has_structure && input.has_regions {
@@ -200,14 +183,12 @@ where
             return Ok(MutationResult::Skipped);
         }
 
-        let parser = self.parser.lock().unwrap();
-
         let tree = match &input.structure {
             Some(tree) => tree,
             None => return Ok(MutationResult::Skipped),
         };
 
-        let n_nodes = PangHelper::count_nodes(&*parser, tree);
+        let n_nodes = PangHelper::count_nodes(&self.lang, tree);
 
         if n_nodes <= 1 {
             return Ok(MutationResult::Skipped);
@@ -217,7 +198,7 @@ where
         let to_delete = rng.between(2, n_nodes);
         debug!("Deleting node at position {}", to_delete);
 
-        let new_tree = delete_node(&*parser, tree.clone(), to_delete);
+        let new_tree = delete_node(&self.lang, tree.clone(), to_delete);
 
         let new_bytes = new_tree.to_bytes();
 

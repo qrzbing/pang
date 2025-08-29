@@ -43,6 +43,7 @@ Welcome to `PANG`
 
 pub mod generator;
 pub mod grammar;
+pub mod language;
 pub mod parser;
 pub mod symbol;
 pub mod tree;

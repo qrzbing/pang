@@ -1,8 +1,11 @@
 //! TLV [`Grammar`] Example
 
+use std::collections::HashSet;
+
 use crate::grammar;
 use crate::{
-    grammar::{Grammar, exp, exp_with_opts},
+    grammar::{exp, exp_with_opts},
+    language::Language,
     opts,
     symbol::{
         nt,
@@ -14,9 +17,9 @@ use crate::{
     },
 };
 
-/// Generate a TLV grammar.
-pub fn tlv_grammar() -> Grammar {
-    grammar! {
+/// Generate a TLV language.
+pub fn tlv_lang() -> Language {
+    let grammar = grammar! {
         "start" => vec![exp(vec![nt("tlv")])],
         "tlv" => vec![exp(vec![nt("type"), nt("len"), nt("value")])],
         "type" => vec![exp(vec![t_bytes(4)])],
@@ -27,12 +30,13 @@ pub fn tlv_grammar() -> Grammar {
                 opts!("length_is" => "len")
             )
         ],
-    }
+    };
+    Language::new(grammar, "start", HashSet::new())
 }
 
 /// Generate a nested TLV grammar.
-pub fn nest_tlv_grammar() -> Grammar {
-    grammar! {
+pub fn nest_tlv_lang() -> Language {
+    let grammar = grammar! {
         "start" => vec![exp(vec![nt("tlv")])],
         "tlv" => vec![exp(vec![nt("type"), nt("len"), nt("value")])],
         "type" => vec![exp(vec![t_bytes(4)])],
@@ -44,12 +48,13 @@ pub fn nest_tlv_grammar() -> Grammar {
                 opts!("length_is" => "len")
             )
         ],
-    }
+    };
+    Language::new(grammar, "start", HashSet::new())
 }
 
 /// Generate an ASN.1 TLV grammar.
-pub fn asn1_tlv_grammar() -> Grammar {
-    grammar!(
+pub fn asn1_tlv_lang() -> Language {
+    let grammar = grammar!(
         "asn1-tlv" => vec![
             exp(vec![
                 nt("asn1-tlv-type"),
@@ -73,5 +78,6 @@ pub fn asn1_tlv_grammar() -> Grammar {
                 opts!("length_is" => "asn1-tlv-len")
             )
         ],
-    )
+    );
+    Language::new(grammar, "asn1-tlv", HashSet::new())
 }

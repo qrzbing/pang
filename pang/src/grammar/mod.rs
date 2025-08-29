@@ -11,12 +11,6 @@ use serde_json::Value as GrammarOptionValue;
 
 use crate::symbol::Symbol;
 
-// #[doc(hidden)]
-pub mod examples;
-pub use examples::{
-    ASCII_LETTERS, DIGITS, c_sample_grammar, expr_grammar, srange, tlv::asn1_tlv_grammar,
-    xml::xml_grammar,
-};
 pub mod macros;
 
 /// Grammar can extend to do some user-defined actions by GrammarOptions.
@@ -154,9 +148,8 @@ impl Grammar {
     /// # Examples
     ///
     /// ```
-    /// use pang::grammar::{expr_grammar, Grammar};
-    ///
-    /// let grammar1 = expr_grammar();
+    /// use pang::{grammar::Grammar, language::expr_lang};
+    /// let grammar1 = expr_lang().grammar;
     /// let grammar2 = Grammar::new();
     ///
     /// let extend = grammar2.extend_grammar(&grammar1);
@@ -173,8 +166,8 @@ impl Grammar {
     /// Examples
     ///
     /// ```
-    /// use pang::grammar::expr_grammar;
-    /// let grammar = expr_grammar();
+    /// use pang::language::expr_lang;
+    /// let grammar = expr_lang().grammar;
     /// let (defined_nonterminals, used_nonterminals) = match grammar.def_used_nonterminals("start")
     /// {
     ///     (Some(d), Some(u)) => (d, u),
@@ -215,8 +208,8 @@ impl Grammar {
     /// # Examples
     ///
     /// ```
-    /// use pang::grammar::expr_grammar;
-    /// let grammar = expr_grammar();
+    /// use pang::language::expr_lang;
+    /// let grammar = expr_lang().grammar;
     /// let reachable = grammar.reachable_nonterminals("start");
     /// assert_eq!(reachable.len(), 6);
     /// ```
@@ -254,8 +247,8 @@ impl Grammar {
     /// # Examples
     ///
     /// ```
-    /// use pang::grammar::expr_grammar;
-    /// let grammar = expr_grammar();
+    /// use pang::language::expr_lang;
+    /// let grammar = expr_lang().grammar;
     /// let unreachable = grammar.unreachable_nonterminals("start");
     /// assert_eq!(unreachable.len(), 0);
     /// ```
@@ -276,10 +269,11 @@ impl Grammar {
     /// ```
     /// use pang::{
     ///     grammar,
-    ///     grammar::{exp, expr_grammar, xml_grammar},
+    ///     grammar::exp,
+    ///     language::{expr_lang, xml_lang},
     ///     symbol::{nt, terminals::literal::t},
     /// };
-    /// let grammar = expr_grammar();
+    /// let grammar = expr_lang().grammar;
     /// assert_eq!(grammar.is_valid("start"), true);
     ///
     /// let grammar = grammar! {
@@ -289,7 +283,7 @@ impl Grammar {
     ///
     /// assert_eq!(grammar.is_valid("start"), false);
     ///
-    /// let grammar = xml_grammar();
+    /// let grammar = xml_lang().grammar;
     /// // let display_grammar = DisplayGrammar::new(&grammar);
     /// // println!("XML Grammar: {}", display_grammar);
     /// assert_eq!(grammar.is_valid("start"), true);

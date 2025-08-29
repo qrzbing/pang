@@ -10,7 +10,7 @@ use ahash::AHasher;
 use libafl_bolts::{impl_serdeany, rands::Rand};
 use serde::{Deserialize, Serialize};
 
-use pang::{parser::Parser, tree::DerivationTree};
+use pang::{grammar::Grammar, tree::DerivationTree};
 
 use crate::input::PangInput;
 
@@ -30,12 +30,10 @@ pub struct PangMutateState {
 
 impl PangMutateState {
     /// Create a new [`PangMutateState`] with the given parser.
-    pub fn new<P>(parser: &P) -> Self
-    where
-        P: Parser,
-    {
+    pub fn new(grammar: Grammar) -> Self
+where {
         let mut fragments = HashMap::new();
-        for key in parser.grammar().keys() {
+        for key in grammar.keys() {
             fragments.insert(key.to_string(), Vec::new());
         }
         Self {

@@ -1,20 +1,20 @@
 //! XML [`Grammar`] Example
 
+use std::collections::HashSet;
+
 use crate::{
-    grammar,
-    grammar::{
-        Grammar,
-        examples::{ASCII_LETTERS, DIGITS},
-        exp, srange,
-    },
+    grammar::exp,
+    language::{ASCII_LETTERS, DIGITS, Language, srange},
     symbol::{nt, terminals::literal::t},
 };
 
-/// Generate a XML grammar
-pub fn xml_grammar() -> Grammar {
+use crate::grammar;
+
+/// Generate a XML language
+pub fn xml_lang() -> Language {
     let letter_chars = format!("{}{}{}{}{}", ASCII_LETTERS, DIGITS, "\"", "'", ".");
     let letter_space_chars = format!("{}{}{}{}{}{}", ASCII_LETTERS, DIGITS, "\"", "'", " ", "\t");
-    grammar! {
+    let grammar = grammar! {
         "start" => vec![exp(vec![nt("xml-tree")])],
         "xml-tree" => vec![
             exp(vec![nt("text")]),
@@ -47,5 +47,6 @@ pub fn xml_grammar() -> Grammar {
         ],
         "letter" => srange(&letter_chars),
         "letter_space" => srange(&letter_space_chars)
-    }
+    };
+    Language::new(grammar, "start", HashSet::new())
 }
