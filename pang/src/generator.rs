@@ -1,4 +1,4 @@
-//! [`Generator`] can generate random derivation trees from a given [`Grammar`].
+//! Generator can generate random derivation trees from a given [`Grammar`].
 
 use std::sync::Arc;
 

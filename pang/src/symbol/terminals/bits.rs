@@ -1,3 +1,5 @@
+//! BitsTerminal
+
 use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
 use serde::{Deserialize, Serialize};
@@ -10,7 +12,7 @@ use crate::{
     tree::{DerivationTree, new_node},
 };
 
-///
+/// Bits terminal, not fully implemented yet.
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
 pub struct BitsTerminal {
     value: Vec<u8>,

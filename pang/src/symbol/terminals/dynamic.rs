@@ -1,3 +1,5 @@
+//! # DynamicTerminal
+
 use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
 use serde::{Deserialize, Serialize};
@@ -10,7 +12,7 @@ use crate::{
     tree::{DerivationTree, new_node},
 };
 
-///
+/// DynamicTerminal.
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
 pub struct DynamicTerminal {
     value: Vec<u8>,

@@ -11,7 +11,7 @@ use crate::{
 };
 
 impl Grammar {
-    ///
+    /// Parse input string with given grammar using combinator parser.
     pub fn parse_combinator<'a>(
         &'a self,
         input: &'a [u8],
@@ -36,7 +36,7 @@ impl Grammar {
 }
 
 impl Symbol {
-    ///
+    /// Parse a Symbol.
     pub fn parse<'a>(
         &'a self,
         input: &'a [u8],

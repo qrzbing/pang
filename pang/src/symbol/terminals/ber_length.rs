@@ -1,3 +1,44 @@
+//! # BerLengthTerminal
+//!
+//! BerLengthTerminal can represent a BER-encoded length field.
+//!
+//! ## Example
+//!
+//! ```
+//! use std::collections::BTreeMap;
+//! use pang::{
+//!     grammar::Grammar,
+//!     symbol::{Symbol, t_ber},
+//! };
+//! let ber_symbol = t_ber();
+//! assert_eq!(ber_symbol.to_string(), "0");
+//!
+//! if let Symbol::Terminal { kind: ber_kind } = ber_symbol {
+//!     let ber_len = ber_kind
+//!                    .as_has_length().unwrap()
+//!                    .as_length().unwrap();
+//!     assert_eq!(ber_len, 0);
+//!     let new_ber = ber_kind.as_has_length().unwrap().from_length(255);
+//!     assert_eq!(new_ber.encode(), Ok(vec![0x81, 0xff]));
+//! }
+//!
+//! let ber_symbol = t_ber();
+//! let grammar = Grammar::new();
+//! let input = &[0x82, 0xff, 0xff];
+//! let (remaining_input, ber_kind) = ber_symbol
+//!     .parse(input, &grammar, &mut BTreeMap::new())
+//!     .unwrap();
+//! assert_eq!(remaining_input, &[] as &[u8]);
+//! let ber_len = ber_kind
+//!     .first_terminal_kind()
+//!     .unwrap()
+//!     .as_has_length()
+//!     .unwrap()
+//!     .as_length()
+//!     .unwrap();
+//! assert_eq!(ber_len, 65535);
+//! ```
+
 use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
 use serde::{Deserialize, Serialize};
@@ -12,7 +53,7 @@ use crate::{
 };
 
 /// Convert a usize to a BER-encoded length field.
-pub fn usize_to_ber_bytes(len: usize) -> Vec<u8> {
+fn usize_to_ber_bytes(len: usize) -> Vec<u8> {
     if len < 128 {
         // Less than 0x80
         vec![len as u8]
@@ -36,8 +77,7 @@ pub fn usize_to_ber_bytes(len: usize) -> Vec<u8> {
 }
 
 /// Decode a BER-encoded length to a `usize`.
-///
-pub fn ber_to_usize(input: &[u8]) -> DecodeResult<usize> {
+fn ber_to_usize(input: &[u8]) -> DecodeResult<usize> {
     if input.is_empty() {
         return Err(DecodeError::Incomplete("Input is empty"));
     }
@@ -83,7 +123,7 @@ pub fn ber_to_usize(input: &[u8]) -> DecodeResult<usize> {
     Ok((remaining, value_len))
 }
 
-///
+/// BER-encoded length terminal.
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
 pub struct BerLengthTerminal {
     value: usize,
@@ -95,7 +135,7 @@ impl BerLengthTerminal {
         Self { value: 0 }
     }
 
-    ///
+    /// Create a new BerLengthTerminal from a `usize`.
     pub fn from_usize(value: usize) -> Self {
         Self { value }
     }

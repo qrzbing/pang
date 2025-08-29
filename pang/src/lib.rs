@@ -41,7 +41,7 @@ Welcome to `PANG`
     )
 )]
 
-pub mod generator;
+mod generator;
 pub mod grammar;
 pub mod language;
 pub mod parser;

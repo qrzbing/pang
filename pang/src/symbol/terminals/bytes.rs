@@ -1,3 +1,5 @@
+//! # BytesTerminal
+
 use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 
 use serde::{Deserialize, Serialize};
@@ -11,7 +13,8 @@ use crate::{
     tree::{DerivationTree, new_node},
 };
 
-///
+/// Bytes terminal.
+/// TODO: support big/little-endian.
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
 pub struct BytesTerminal {
     value: Vec<u8>,
@@ -27,7 +30,7 @@ impl BytesTerminal {
         }
     }
 
-    /// Create a new BytesTerminal.
+    /// Create a new BytesTerminal from a byte slice.
     pub fn new_from_val(value: &[u8]) -> Self {
         Self {
             value: value.to_vec(),
@@ -136,7 +139,7 @@ pub fn t_bytes(size: usize) -> Symbol {
     }
 }
 
-/// Create a Binary Bytes Terminal.
+/// Create a Binary Bytes Terminal from a byte slice.
 pub fn t_bytes_val(val: &[u8]) -> Symbol {
     Symbol::Terminal {
         kind: Arc::new(BytesTerminal::new_from_val(val)),

@@ -1,4 +1,4 @@
-//! src/parser/factory.rs
+//! ExpansionParser factory.
 
 use crate::{
     grammar::Expansion,

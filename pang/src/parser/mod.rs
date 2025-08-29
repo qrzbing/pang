@@ -2,7 +2,7 @@
 
 use std::hash::{Hash, Hasher};
 
-pub mod combinator;
+mod combinator;
 pub mod expansion;
 pub mod factory;
 

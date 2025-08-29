@@ -13,30 +13,24 @@ use crate::{
     tree::DerivationTree,
 };
 
-///
 pub mod ber_length;
-///
 pub mod bits;
-///
 pub mod bytes;
-///
 pub mod dynamic;
-///
 pub mod literal;
 
-///
+/// A Rand trait compatible with libafl_bolts::Rand
 pub trait DynRand {
-    ///
+    /// Gets the next 64 bit value
     fn next(&mut self) -> u64;
-    ///
+    /// Fill given slice with random bytes
     fn fill_bytes(&mut self, dest: &mut [u8]);
-    ///
+    /// Gets a value below the given one or zero
     fn below_or_zero(&mut self, n: usize) -> usize;
-    ///
+    /// Gets a value between the given lower bound (inclusive) and upper bound (inclusive)
     fn between(&mut self, lower_bound_incl: usize, upper_bound_incl: usize) -> usize;
 }
 
-///
 impl<R: Rand> DynRand for R {
     fn next(&mut self) -> u64 {
         Rand::next(self)
@@ -66,16 +60,16 @@ impl<R: Rand> DynRand for R {
     }
 }
 
-///
+/// TerminalKind can describe a terminal symbol.
 #[typetag::serde(tag = "type")]
 pub trait TerminalKind: Debug + Send + Sync {
     /// Display the terminal in a human-readable format.
     fn display_terminal(&self) -> String;
 
-    ///
+    /// Encode the terminal to a byte array.
     fn encode(&self) -> Result<Vec<u8>, String>;
 
-    ///
+    /// Generate a new value for the terminal.
     fn generate(&self, rng: &mut dyn DynRand) -> Arc<DerivationTree>;
 
     /// Returns a `&dyn Any` reference to itself for downcasting
@@ -84,7 +78,7 @@ pub trait TerminalKind: Debug + Send + Sync {
     /// Dynamically compare two [`TerminalKind`] trait objects
     fn eq_dyn(&self, other: &dyn TerminalKind) -> bool;
 
-    ///
+    /// Hash the terminal using the given Hasher.
     fn hash_dyn(&self, state: &mut dyn Hasher);
 
     /// Parse the terminal from input.

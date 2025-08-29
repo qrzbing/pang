@@ -1,4 +1,4 @@
-//! XML [`Grammar`] Example
+//! XML Language Example
 
 use std::collections::HashSet;
 

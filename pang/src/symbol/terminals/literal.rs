@@ -1,3 +1,5 @@
+//! LiteralTerminal
+
 use std::{
     any::Any,
     collections::BTreeMap,

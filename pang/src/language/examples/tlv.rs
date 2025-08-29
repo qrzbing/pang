@@ -1,4 +1,4 @@
-//! TLV [`Grammar`] Example
+//! TLV Language Example
 
 use std::collections::HashSet;
 

@@ -1,4 +1,4 @@
-//! TODO
+//! Symbol contains Terminal or NonTerminal.
 
 use std::{
     any::Any,
@@ -11,8 +11,16 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 pub mod terminals;
-use terminals::TerminalKind;
+pub use terminals::{
+    TerminalKind,
+    ber_length::{BerLengthTerminal, t_ber},
+    bits::{BitsTerminal, t_bis_val, t_bits},
+    bytes::{BytesTerminal, t_bytes, t_bytes_val},
+    dynamic::{DynamicTerminal, t_dyn, t_dyn_value},
+    literal::{LiteralTerminal, t},
+};
 pub mod traits;
+pub use traits::HasLength;
 
 /// Decode error types.
 #[derive(Debug, PartialEq)]
