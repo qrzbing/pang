@@ -107,3 +107,75 @@ impl Expansion {
         Ok((remaining_input, children))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Once;
+
+    use crate::grammar::{
+        asn1_tlv_grammar,
+        examples::tlv::{nest_tlv_grammar, tlv_grammar},
+    };
+
+    static INIT: Once = Once::new();
+
+    fn setup_logger() {
+        INIT.call_once(|| {
+            let _ = env_logger::try_init();
+        });
+    }
+
+    #[test]
+    fn test_parse_tlv_grammar() {
+        setup_logger();
+        let input = &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08];
+        let grammar = tlv_grammar();
+        let tree = grammar.parse_combinator(input, "start").unwrap();
+        assert_eq!(tree.to_bytes(), input);
+    }
+
+    #[test]
+    fn test_parse_nest_tlv_grammar() {
+        setup_logger();
+        let grammar = nest_tlv_grammar();
+        let input = &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08];
+        let tree = grammar.parse_combinator(input, "start").unwrap();
+        assert_eq!(tree.to_bytes(), input);
+
+        let input = &[
+            0x01, 0x00, 0x00, 0x00, // type
+            0x00, 0x00, 0x00, 0x09, // length
+            0x01, 0x00, 0x00, 0x00, // nest-type
+            0x00, 0x00, 0x00, 0x01, // nest-length
+            0x01, // nest-value
+        ];
+        let tree = grammar.parse_combinator(input, "start").unwrap();
+        assert_eq!(tree.to_bytes(), input);
+
+        let input = &[
+            0x01, 0x00, 0x00, 0x00, // type
+            0x00, 0x00, 0x00, 0x18, // length
+            0x01, 0x00, 0x00, 0x00, // nest-type
+            0x00, 0x00, 0x00, 0x10, // nest-length
+            0x01, 0x00, 0x00, 0x00, // nest-nest-type
+            0x00, 0x00, 0x00, 0x08, // nest-nest-length
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, // nest-nest-value
+        ];
+        let tree = grammar.parse_combinator(input, "start").unwrap();
+        assert_eq!(tree.to_bytes(), input);
+    }
+
+    #[test]
+    fn test_parse_asn1_grammar() {
+        setup_logger();
+        let grammar = asn1_tlv_grammar();
+
+        let input = &[0x02, 0x01, 0x00];
+        let tree = grammar.parse_combinator(input, "asn1-tlv").unwrap();
+        assert_eq!(tree.to_bytes(), input);
+
+        let input = &[0x05, 0x00];
+        let tree = grammar.parse_combinator(input, "asn1-tlv").unwrap();
+        assert_eq!(tree.to_bytes(), input);
+    }
+}

@@ -155,6 +155,10 @@ impl HasLength for BerLengthTerminal {
     fn as_length(&self) -> Option<usize> {
         Some(self.value)
     }
+
+    fn from_length(&self, len: usize) -> Arc<dyn TerminalKind> {
+        Arc::new(BerLengthTerminal::from_usize(len))
+    }
 }
 
 /// Create a BER Length Terminal.

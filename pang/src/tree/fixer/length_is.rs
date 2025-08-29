@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-    grammar::{BinaryKind, Grammar, Symbol, TerminalKind},
+    grammar::Grammar,
+    symbol::Symbol,
     tree::{DerivationTree, TreeFixer, new_node},
 };
 
@@ -13,22 +14,18 @@ use crate::{
 /// ```
 /// use std::sync::Arc;
 ///
-/// use pang::{
-///     generator::Generator,
-///     grammar::asn1_tlv_grammar,
-///     tree::{decoder::ber_to_usize, fixer::LengthIsFixer},
-/// };
+/// use libafl_bolts::rands::StdRand;
 ///
-/// let grammar = asn1_tlv_grammar();
-/// let generator = Generator::new(
-///     grammar,
+/// use pang::{grammar::asn1_tlv_grammar, tree::fixer::LengthIsFixer};
+///
+/// let mut rng = StdRand::with_seed(0);
+///
+/// let tree = asn1_tlv_grammar().generate_combinator(
 ///     "asn1-tlv",
-///     4,
-///     6,
-///     vec![Arc::new(LengthIsFixer::new())],
+///     &mut rng,
+///     &[Arc::new(LengthIsFixer::new())],
 /// );
 ///
-/// let tree = generator.generate_tree();
 /// assert_eq!(tree.symbol.label(), "asn1-tlv");
 ///
 /// let children = tree.children.as_ref().unwrap();
@@ -40,7 +37,11 @@ use crate::{
 /// let asn1_tlv_len = tree
 ///     .at(&[1])
 ///     .unwrap()
-///     .decode(ber_to_usize)
+///     .first_terminal_kind()
+///     .unwrap()
+///     .as_has_length()
+///     .unwrap()
+///     .as_length()
 ///     .unwrap();
 ///
 /// assert_eq!(asn1_tlv_len, children[2].to_bytes().len());
@@ -52,48 +53,6 @@ impl LengthIsFixer {
     /// Create a new [`LengthIsFixer`].
     pub fn new() -> Self {
         Self::default()
-    }
-
-    fn get_len_node_terminal_symbol<'a>(
-        &self,
-        grammar: &'a Grammar,
-        len_label: &str,
-    ) -> Option<&'a Symbol> {
-        grammar
-            .get(len_label)?
-            .iter()
-            .find_map(|exp| exp.symbols.first())
-            .filter(|sym| matches!(sym, Symbol::Terminal { .. }))
-    }
-
-    fn update_terminal_value(
-        &self,
-        node: Arc<DerivationTree>,
-        new_value: Vec<u8>,
-    ) -> Arc<DerivationTree> {
-        if let Symbol::Terminal { .. } = &node.symbol {
-            return new_node(node.symbol.clone(), node.children.clone(), Some(new_value));
-        }
-
-        if let Some(children) = &node.children {
-            let mut new_children = Vec::with_capacity(children.len());
-            let mut updated = false;
-            for child in children {
-                if !updated {
-                    let new_child = self.update_terminal_value(child.clone(), new_value.clone());
-                    if !Arc::ptr_eq(child, &new_child) {
-                        updated = true;
-                    }
-                    new_children.push(new_child);
-                } else {
-                    new_children.push(child.clone());
-                }
-            }
-            if updated {
-                return new_node(node.symbol.clone(), Some(new_children), node.value.clone());
-            }
-        }
-        node
     }
 }
 
@@ -126,8 +85,12 @@ impl TreeFixer for LengthIsFixer {
     /// use std::sync::Arc;
     ///
     /// use pang::{
-    ///     grammar::{asn1_tlv_grammar, nt, t, t_dyn},
-    ///     tree::{fixer::LengthIsFixer, new_node}
+    ///     grammar::asn1_tlv_grammar,
+    ///     symbol::{
+    ///         nt,
+    ///         terminals::{ber_length::t_ber, bytes::t_bytes_val, dynamic::t_dyn_value},
+    ///     },
+    ///     tree::{fixer::LengthIsFixer, new_node},
     /// };
     ///
     /// let grammar = asn1_tlv_grammar();
@@ -136,107 +99,95 @@ impl TreeFixer for LengthIsFixer {
     ///     Some(vec![
     ///         new_node(
     ///             nt("asn1-tlv-type"),
-    ///             Some(vec![new_node(t(&[0x05]), Some(vec![]), None)]),
-    ///             None,
+    ///             Some(vec![new_node(t_bytes_val(&[0x05]), Some(vec![]))]),
     ///         ),
     ///         new_node(
     ///             nt("asn1-tlv-len"),
-    ///             Some(vec![new_node(t_dyn(), Some(vec![]), Some(vec![0x00]))]),
-    ///             None,
+    ///             Some(vec![new_node(t_ber(), Some(vec![]))]),
     ///         ),
     ///         new_node(
     ///             nt("asn1-tlv-value"),
-    ///             Some(vec![new_node(t_dyn(), Some(vec![]), Some(vec![0x01, 0x02, 0x03, 0x04]))]),
-    ///             None,
+    ///             Some(vec![new_node(
+    ///                 t_dyn_value(&[0x01, 0x02, 0x03, 0x04]),
+    ///                 Some(vec![]),
+    ///             )]),
     ///         ),
     ///     ]),
-    ///     None,
     /// );
     /// let tlv_len_orig = tree.at(&[1]).unwrap().all_terminals();
-    /// assert_eq!(tlv_len_orig, vec![0x00]);
+    /// assert_eq!(tlv_len_orig, "0");
+    /// println!("Original tree: {}", tree);
     ///
     /// let tree = tree.fix_tree(&grammar, &[Arc::new(LengthIsFixer::new())]);
     /// let tlv_len_fixed = tree.at(&[1]).unwrap().all_terminals();
-    /// assert_eq!(tlv_len_fixed, vec![0x04]);
+    /// assert_eq!(tlv_len_fixed, "4");
     /// ```
     fn fix(&self, grammar: &Grammar, node: Arc<DerivationTree>) -> Arc<DerivationTree> {
-        // Skip nodes without children
-        let children = match &node.children {
-            Some(c) if !c.is_empty() => c,
-            _ => return node,
+        // Skip Terminal and NonTerminal without children
+        let (Some(children), Symbol::NonTerminal { label }) = (&node.children, &node.symbol) else {
+            return node;
+        };
+
+        let Some(..) = grammar.get(label) else {
+            return node;
         };
 
         let mut new_children = children.clone();
-        let mut children_changed = false;
+        let mut has_changed = false;
 
         for value_candidate_node in children.iter() {
-            if let Symbol::NonTerminal {
-                label: value_candidate_label,
-            } = &value_candidate_node.symbol
-            {
-                if let Some(value_expansions) = grammar.get(value_candidate_label) {
-                    for value_exp in value_expansions {
-                        if let Some(len_label) =
-                            value_exp.options.get("length_is").and_then(|v| v.as_str())
-                        {
-                            let value_bytes = value_candidate_node.to_bytes();
-                            if let Some(len_node_idx) = children.iter().position(|c| {
-                                if let Symbol::NonTerminal { label } = &c.symbol {
-                                    label == len_label
-                                } else {
-                                    false
-                                }
-                            }) {
-                                let len_node_to_update = &children[len_node_idx];
-                                let len_bytes_encoded = match value_exp
-                                    .options
-                                    .get("length_type")
-                                    .and_then(|v| v.as_str())
-                                {
-                                    Some("ber") => usize_to_ber_bytes(value_bytes.len()),
-                                    _ => {
-                                        let size_in_bytes = if let Some(Symbol::Terminal {
-                                            kind: TerminalKind::Binary(BinaryKind::Bytes { size }),
-                                        }) =
-                                            self.get_len_node_terminal_symbol(grammar, len_label)
-                                        {
-                                            size
-                                        } else {
-                                            &4
-                                        };
-                                        let mut bytes_val =
-                                            (value_bytes.len() as u64).to_le_bytes().to_vec();
-                                        if let Some("big") =
-                                            value_exp.options.get("endian").and_then(|v| v.as_str())
-                                        {
-                                            bytes_val =
-                                                (value_bytes.len() as u64).to_be_bytes().to_vec();
-                                        }
-                                        bytes_val.truncate(*size_in_bytes);
-                                        bytes_val
-                                    }
-                                };
-                                let new_len_node = self.update_terminal_value(
-                                    len_node_to_update.clone(),
-                                    len_bytes_encoded,
-                                );
-                                new_children[len_node_idx] = new_len_node;
-                                children_changed = true;
+            let Symbol::NonTerminal { label: value_label } = &value_candidate_node.symbol else {
+                continue;
+            };
 
+            if let Some(value_expansions) = grammar.get(value_label) {
+                for value_exp in value_expansions {
+                    if let Some(len_label) =
+                        value_exp.options.get("length_is").and_then(|v| v.as_str())
+                    {
+                        let actual_length = value_candidate_node.to_bytes().len();
+
+                        if let Some(len_node_idx) =
+                            children.iter().position(|c| c.symbol.label() == len_label)
+                        {
+                            let original_len_terminal = children[len_node_idx]
+                                .first_terminal_kind()
+                                .expect("Length node must contain a terminal");
+
+                            if let Some(has_length_trait_obj) =
+                                original_len_terminal.as_has_length()
+                            {
+                                // Use the `HasLength` trait to convert the length to the actual value.
+                                let new_terminal_kind =
+                                    has_length_trait_obj.from_length(actual_length);
+
+                                // Generate a new terminal node with the new length.
+                                let new_len_leaf = new_node(
+                                    Symbol::Terminal {
+                                        kind: new_terminal_kind,
+                                    },
+                                    Some(vec![]),
+                                );
+                                let new_len_node = new_node(
+                                    children[len_node_idx].symbol.clone(),
+                                    Some(vec![new_len_leaf]),
+                                );
+
+                                new_children[len_node_idx] = new_len_node;
+                                has_changed = true;
                                 break;
                             }
                         }
                     }
                 }
             }
+            if has_changed {
+                break;
+            }
         }
 
-        if children_changed {
-            Arc::new(DerivationTree {
-                symbol: node.symbol.clone(),
-                children: Some(new_children),
-                value: node.value.clone(),
-            })
+        if has_changed {
+            new_node(node.symbol.clone(), Some(new_children))
         } else {
             node
         }

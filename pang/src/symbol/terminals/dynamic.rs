@@ -26,7 +26,7 @@ impl DynamicTerminal {
         }
     }
 
-    ///
+    /// Create a new DynamicTerminal from bytes.
     pub fn from_bytes(inp: &[u8]) -> Self {
         let size = inp.len();
         Self {
@@ -91,9 +91,16 @@ impl TerminalKind for DynamicTerminal {
     }
 }
 
-/// This is just a Symbol.
+/// Return a new DynamicTerminal.
 pub fn t_dyn() -> Symbol {
     Symbol::Terminal {
         kind: Arc::new(DynamicTerminal::new()),
+    }
+}
+
+/// Consume all the input and return DynamicTerminal.
+pub fn t_dyn_value(value: &[u8]) -> Symbol {
+    Symbol::Terminal {
+        kind: Arc::new(DynamicTerminal::from_bytes(value)),
     }
 }

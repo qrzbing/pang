@@ -18,8 +18,6 @@ pub use examples::{
     xml::xml_grammar,
 };
 pub mod macros;
-// pub mod symbol;
-// pub use symbol::{BinaryKind, Symbol, TerminalKind, nt, t, t_bits, t_bytes, t_dyn};
 
 /// Grammar can extend to do some user-defined actions by GrammarOptions.
 pub type GrammarOptions = BTreeMap<String, GrammarOptionValue>;
@@ -36,11 +34,6 @@ pub fn exp(symbols: Vec<Symbol>) -> Expansion {
 pub fn exp_with_opts(symbols: Vec<Symbol>, options: GrammarOptions) -> Expansion {
     Expansion { symbols, options }
 }
-
-// /// Create a new Expansion with options.
-// pub fn exp_with_opts(symbols: Vec<Symbol>, options: GrammarOptions) -> Expansion {
-//     Expansion { symbols, options }
-// }
 
 /// Expansion contains a sequence of symbols and options.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

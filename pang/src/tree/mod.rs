@@ -4,10 +4,11 @@ use std::{fmt, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::symbol::{Symbol, terminals::TerminalKind};
+use crate::{
+    grammar::Grammar,
+    symbol::{Symbol, terminals::TerminalKind},
+};
 
-// pub mod decoder;
-// use decoder::{CustomDecoderFn, NodeValue};
 pub mod fixer;
 pub use fixer::TreeFixer;
 
@@ -379,80 +380,45 @@ impl DerivationTree {
         }
     }
 
-    // /// Fix the derivation tree using a list of [`TreeFixer`].
-    // pub fn fix_tree(
-    //     self: &Arc<Self>,
-    //     grammar: &Grammar,
-    //     fixers: &[Arc<dyn TreeFixer>],
-    // ) -> Arc<DerivationTree> {
-    //     let mut fixed_node = if let Some(children) = &self.children {
-    //         let mut changed = false;
-    //         // Fix children first
-    //         let fixed_children = children
-    //             .iter()
-    //             .map(|c| {
-    //                 let fixed_child = c.fix_tree(grammar, fixers);
-    //                 // Check if the child was changed
-    //                 if !Arc::ptr_eq(c, &fixed_child) {
-    //                     changed = true;
-    //                 }
+    /// Fix the derivation tree using a list of [`TreeFixer`].
+    pub fn fix_tree(
+        self: &Arc<Self>,
+        grammar: &Grammar,
+        fixers: &[Arc<dyn TreeFixer>],
+    ) -> Arc<DerivationTree> {
+        let mut fixed_node = if let Some(children) = &self.children {
+            let mut changed = false;
+            // Fix children first
+            let fixed_children = children
+                .iter()
+                .map(|c| {
+                    let fixed_child = c.fix_tree(grammar, fixers);
+                    // Check if the child was changed
+                    if !Arc::ptr_eq(c, &fixed_child) {
+                        changed = true;
+                    }
 
-    //                 fixed_child
-    //             })
-    //             .collect();
+                    fixed_child
+                })
+                .collect();
 
-    //         if changed {
-    //             // Create a new node if children were potentially changed
-    //             new_node(
-    //                 self.symbol.clone(),
-    //                 Some(fixed_children),
-    //                 self.value.clone(),
-    //             )
-    //         } else {
-    //             self.clone()
-    //         }
-    //     } else {
-    //         // No children, no recursive call needed
-    //         self.clone()
-    //     };
+            if changed {
+                // Create a new node if children were potentially changed
+                new_node(self.symbol.clone(), Some(fixed_children))
+            } else {
+                self.clone()
+            }
+        } else {
+            // No children, no recursive call needed
+            self.clone()
+        };
 
-    //     for fixer in fixers {
-    //         fixed_node = fixer.fix(grammar, fixed_node);
-    //     }
+        for fixer in fixers {
+            fixed_node = fixer.fix(grammar, fixed_node);
+        }
 
-    //     fixed_node
-    // }
-
-    // /// Get the value of the node as [`NodeValue`].
-    // pub fn value(&self) -> Option<NodeValue> {
-    //     let current_node_value = self.value.as_ref().map(|v| NodeValue::new(v.as_slice()));
-
-    //     // If current node has value, return it.
-    //     if let Some(value) = current_node_value {
-    //         return Some(value);
-    //     }
-
-    //     // If current node has no value and has one child, return the value of the child.
-    //     if let Some(children) = &self.children {
-    //         if children.len() == 1 {
-    //             return children[0].value();
-    //         }
-    //     }
-
-    //     // TODO: handle other cases.
-    //     None
-    // }
-
-    // /// Decode a tree to user-defined type.
-    // pub fn decode<'a, T>(&'a self, decoder: CustomDecoderFn<'a, T>) -> Result<T, DecodeError> {
-    //     if let Some(value) = &self.value() {
-    //         value.decode(decoder)
-    //     } else {
-    //         Err(DecodeError::InvalidData(
-    //             "Cannot decode a non-terminal node without value",
-    //         ))
-    //     }
-    // }
+        fixed_node
+    }
 }
 
 impl fmt::Display for DerivationTree {

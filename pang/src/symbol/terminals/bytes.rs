@@ -108,6 +108,25 @@ impl HasLength for BytesTerminal {
         buf[buf_len - len..].copy_from_slice(&self.value[..len]);
         Some(usize::from_be_bytes(buf))
     }
+
+    fn from_length(&self, len: usize) -> Arc<dyn TerminalKind> {
+        // Convert the usize length back into a byte vector.
+        // The new BytesTerminal should have the same fixed size as the old one.
+        let mut len_bytes = len.to_be_bytes().to_vec();
+
+        // Ensure the byte vector matches the original terminal's fixed size.
+        if len_bytes.len() > self.size {
+            // If the length is too large for the field, take the least significant bytes.
+            len_bytes = len_bytes.split_off(len_bytes.len() - self.size);
+        } else {
+            // If it's smaller, pad with zeros at the beginning (for big-endian).
+            while len_bytes.len() < self.size {
+                len_bytes.insert(0, 0);
+            }
+        }
+
+        Arc::new(BytesTerminal::new_from_val(&len_bytes))
+    }
 }
 
 /// Create a Binary Bytes Terminal.
