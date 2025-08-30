@@ -2,9 +2,8 @@
 
 use std::hash::{Hash, Hasher};
 
+pub mod callback;
 mod combinator;
-pub mod expansion;
-pub mod factory;
 
 /// Region contains a range of positions that is partially parsed.
 #[derive(Debug, Clone, Copy, Eq)]

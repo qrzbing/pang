@@ -1,41 +1,79 @@
 //! Grammar can show the structure and syntax of language.
 
 use std::{
+    any::Any,
     collections::{BTreeMap, HashMap, HashSet},
     fmt,
+    hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
+    sync::Arc,
 };
 
 use log::error;
-use serde_json::Value as GrammarOptionValue;
 
-use crate::symbol::Symbol;
+use crate::{
+    symbol::{DecodeError, Symbol},
+    tree::DerivationTree,
+};
 
 pub mod macros;
 
-/// Grammar can extend to do some user-defined actions by GrammarOptions.
-pub type GrammarOptions = BTreeMap<String, GrammarOptionValue>;
+/// ExpansionCallback takes a context and returns helping value.
+pub type ExpansionCallback =
+    fn(context: &BTreeMap<String, Arc<DerivationTree>>) -> Result<usize, DecodeError>;
+
+/// Grammar can extend to do some user-defined actions by ExpansionOptions.
+pub type ExpansionOptions = BTreeMap<String, Arc<dyn Any + Send + Sync>>;
 
 /// Create a new Expansion with empty options.
 pub fn exp(symbols: Vec<Symbol>) -> Expansion {
     Expansion {
         symbols,
-        options: GrammarOptions::new(),
+        options: ExpansionOptions::new(),
     }
 }
 
 /// Create a new Expansion with options.
-pub fn exp_with_opts(symbols: Vec<Symbol>, options: GrammarOptions) -> Expansion {
+pub fn exp_with_opts(symbols: Vec<Symbol>, options: ExpansionOptions) -> Expansion {
     Expansion { symbols, options }
 }
 
 /// Expansion contains a sequence of symbols and options.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug)]
 pub struct Expansion {
     /// Symbols in the expansion.
     pub symbols: Vec<Symbol>,
     /// Options for the expansion.
-    pub options: GrammarOptions,
+    pub options: ExpansionOptions,
+}
+
+impl PartialEq for Expansion {
+    fn eq(&self, other: &Self) -> bool {
+        if self.symbols != other.symbols {
+            return false;
+        }
+        if self.options.len() != other.options.len() {
+            return false;
+        }
+        for ((k1, v1), (k2, v2)) in self.options.iter().zip(other.options.iter()) {
+            if k1 != k2 || !Arc::ptr_eq(v1, v2) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+impl Eq for Expansion {}
+
+impl Hash for Expansion {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.symbols.hash(state);
+        for (key, value) in &self.options {
+            key.hash(state);
+            Arc::as_ptr(value).hash(state);
+        }
+    }
 }
 
 impl Expansion {

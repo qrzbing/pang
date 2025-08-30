@@ -4,8 +4,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::{
-    grammar::{Expansion, Grammar},
-    parser::factory::get_expansion_parser,
+    grammar::{Expansion, ExpansionCallback, Grammar},
     symbol::{DecodeError, DecodeResult, SharedState, Symbol, nt},
     tree::{DerivationTree, new_node},
 };
@@ -51,11 +50,47 @@ impl Symbol {
                     .ok_or(DecodeError::Invalid("Non-terminal not found in grammar"))?;
 
                 for expansion in expansions {
-                    let parser = get_expansion_parser(expansion);
+                    let mut temp_context = context.clone();
 
-                    if let Ok((remaining_input, children)) =
-                        parser.parse(input, expansion, grammar, context)
+                    let parse_result = if let Some(boxed_callback) =
+                        expansion.options.get("length_calculator")
                     {
+                        // Get length from callback
+                        let length = if let Some(callback) =
+                            boxed_callback.downcast_ref::<ExpansionCallback>()
+                        {
+                            (*callback)(&temp_context)?
+                        } else {
+                            return Err(DecodeError::Invalid(
+                                "Option 'length_calculator' is not a valid callback",
+                            ));
+                        };
+
+                        if input.len() < length {
+                            Err(DecodeError::Incomplete(
+                                "Input too short for callback length",
+                            ))
+                        } else {
+                            let (slice_to_parse, remaining_after_slice) = input.split_at(length);
+                            let (rem_in_slice, children) = parse_expansion_symbols(
+                                slice_to_parse,
+                                expansion,
+                                grammar,
+                                &mut temp_context,
+                            )?;
+
+                            if !rem_in_slice.is_empty() {
+                                Err(DecodeError::Invalid("Expansion did not consume slice"))
+                            } else {
+                                Ok((remaining_after_slice, children))
+                            }
+                        }
+                    } else {
+                        parse_expansion_symbols(input, expansion, grammar, &mut temp_context)
+                    };
+
+                    if let Ok((remaining_input, children)) = parse_result {
+                        *context = temp_context;
                         let node = new_node(self.clone(), Some(children));
                         context.insert(label.clone(), node.clone());
                         return Ok((remaining_input, node));
@@ -75,37 +110,24 @@ impl Symbol {
     }
 }
 
-impl Expansion {
-    /// Parse an Expansion
-    pub fn parse<'a>(
-        &'a self,
-        input: &'a [u8],
-        grammar: &'a Grammar,
-        parent_context: &mut BTreeMap<String, Arc<DerivationTree>>,
-    ) -> DecodeResult<'a, Vec<Arc<DerivationTree>>> {
-        let mut remaining_input = input;
-        let mut children = Vec::new();
-        // Create a local context
-        let mut local_context = parent_context.clone();
-
-        // Parse each symbol in the expansion
-        for symbol in &self.symbols {
-            // Call Symbol::parse with the remaining input and the local context
-            match symbol.parse(remaining_input, grammar, &mut local_context) {
-                Ok((next_input, child_node)) => {
-                    remaining_input = next_input;
-                    children.push(child_node);
-                }
-                Err(e) => {
-                    // If any symbol fails, return the error
-                    return Err(e);
-                }
+fn parse_expansion_symbols<'a>(
+    input: &'a [u8],
+    expansion: &'a Expansion,
+    grammar: &'a Grammar,
+    context: &mut BTreeMap<String, Arc<DerivationTree>>,
+) -> DecodeResult<'a, Vec<Arc<DerivationTree>>> {
+    let mut remaining_input = input;
+    let mut children = Vec::new();
+    for symbol in &expansion.symbols {
+        match symbol.parse(remaining_input, grammar, context) {
+            Ok((next_input, child_node)) => {
+                remaining_input = next_input;
+                children.push(child_node);
             }
+            Err(e) => return Err(e),
         }
-
-        // If all symbols parsed successfully, return the children nodes
-        Ok((remaining_input, children))
     }
+    Ok((remaining_input, children))
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 //! Some useful macros for the grammar.
 
-/// Create a `GrammarOptions`
+/// Create a `ExpansionOptions`
 ///
 /// Examples:
 ///
@@ -9,7 +9,8 @@
 /// ```
 /// use pang::grammar;
 /// use pang::{
-///     grammar::{exp, exp_with_opts},
+///     grammar::{exp, exp_with_opts, ExpansionCallback},
+///     language::examples::tlv::len_callback,
 ///     opts,
 ///     symbol::{
 ///         nt,
@@ -25,7 +26,7 @@
 ///     "value" => vec![
 ///         exp_with_opts(
 ///             vec![t_dyn()],
-///             opts!("length_is" => "len")
+///             opts!("length_calculator" => len_callback  as ExpansionCallback)
 ///         )
 ///     ],
 /// };
@@ -34,9 +35,9 @@
 macro_rules! opts {
     ($($key:expr => $value:expr),* $(,)?) => {
         {
-            let mut options = $crate::grammar::GrammarOptions::new();
+            let mut options = $crate::grammar::ExpansionOptions::new();
             $(
-                options.insert($key.to_string(), serde_json::json!($value));
+                options.insert($key.to_string(), std::sync::Arc::new($value));
             )*
             options
         }

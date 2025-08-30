@@ -1,5 +1,15 @@
 # Change Log
 
+## 0.1.4
+
+### Features
+
+- Now `Expansion` accepts `ExpansionOptions`, which has more options to control the expansion.
+
+### Changed
+
+- Rename `GrammarOptions` to `ExpansionOptions`, and change its type to `BTreeMap<String, Arc<dyn Any + Send + Sync>>`.
+
 ## 0.1.3 - 2025-08-29
 
 ### Features

@@ -1,14 +1,8 @@
 # PANG
 
-PANG is a Parser And geNerator Generator.
+PANG is a Parser ANd Generator combinator library.
 
-This is a repo of my studying of Grammar, Parser, and Generator.
-
-## Todos
-
-- [x] v0.1.0: Define grammar
-- [x] v0.1.1: Implement basic parser
-- [x] v0.1.2: Implement basic generator
+[Changelog](CHANGELOG.md)
 
 ## Resources
 

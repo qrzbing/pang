@@ -1,20 +1,23 @@
 //! TLV Language Example
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
+use std::sync::Arc;
 
 use crate::grammar;
 use crate::{
-    grammar::{exp, exp_with_opts},
+    grammar::{ExpansionCallback, exp, exp_with_opts},
     language::Language,
     opts,
+    parser::callback::get_symbol_val,
     symbol::{
-        nt,
+        DecodeError, nt,
         terminals::{
             ber_length::t_ber,
             bytes::{t_bytes, t_bytes_val},
             dynamic::t_dyn,
         },
     },
+    tree::DerivationTree,
 };
 
 /// Generate a TLV language.
@@ -27,7 +30,10 @@ pub fn tlv_lang() -> Language {
         "value" => vec![
             exp_with_opts(
                 vec![t_dyn()],
-                opts!("length_is" => "len")
+                opts!(
+                    "length_calculator" => len_callback  as ExpansionCallback,
+                    "length_provider" => "len".to_string()
+                )
             )
         ],
     };
@@ -45,11 +51,20 @@ pub fn nest_tlv_lang() -> Language {
             exp(vec![nt("tlv")]),
             exp_with_opts(
                 vec![t_dyn()],
-                opts!("length_is" => "len")
+                opts!(
+                    "length_calculator" => len_callback  as ExpansionCallback,
+                    "length_provider" => "len".to_string()
+                )
             )
         ],
     };
     Language::new(grammar, "start", HashSet::new())
+}
+
+/// An example callback function for length.
+pub fn len_callback(context: &BTreeMap<String, Arc<DerivationTree>>) -> Result<usize, DecodeError> {
+    let len = get_symbol_val(context, "len")?;
+    Ok(len)
 }
 
 /// Generate an ASN.1 TLV grammar.
@@ -75,9 +90,19 @@ pub fn asn1_tlv_lang() -> Language {
         "asn1-tlv-value" => vec![
             exp_with_opts(
                 vec![t_dyn()],
-                opts!("length_is" => "asn1-tlv-len")
+                opts!(
+                    "length_calculator" => asn1_tlv_len_callback as ExpansionCallback,
+                    "length_provider" => "asn1-tlv-len".to_string()
+                )
             )
         ],
     );
     Language::new(grammar, "asn1-tlv", HashSet::new())
+}
+
+fn asn1_tlv_len_callback(
+    context: &BTreeMap<String, Arc<DerivationTree>>,
+) -> Result<usize, DecodeError> {
+    let len = get_symbol_val(context, "asn1-tlv-len")?;
+    Ok(len)
 }

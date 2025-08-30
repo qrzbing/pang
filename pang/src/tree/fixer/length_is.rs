@@ -144,41 +144,41 @@ impl TreeFixer for LengthIsFixer {
 
             if let Some(value_expansions) = grammar.get(value_label) {
                 for value_exp in value_expansions {
-                    if let Some(len_label) =
-                        value_exp.options.get("length_is").and_then(|v| v.as_str())
-                    {
-                        debug!("Fix length of {} to {}", value_label, len_label);
-                        let actual_length = value_candidate_node.to_bytes().len();
+                    if let Some(len_label_arc) = value_exp.options.get("length_provider") {
+                        if let Some(len_label) = len_label_arc.downcast_ref::<String>() {
+                            debug!("Fix length of {} to {}", value_label, len_label);
+                            let actual_length = value_candidate_node.to_bytes().len();
 
-                        if let Some(len_node_idx) =
-                            children.iter().position(|c| c.symbol.label() == len_label)
-                        {
-                            let original_len_terminal = children[len_node_idx]
-                                .first_terminal_kind()
-                                .expect("Length node must contain a terminal");
-
-                            if let Some(has_length_trait_obj) =
-                                original_len_terminal.as_has_length()
+                            if let Some(len_node_idx) =
+                                children.iter().position(|c| c.symbol.label() == len_label)
                             {
-                                // Use the `HasLength` trait to convert the length to the actual value.
-                                let new_terminal_kind =
-                                    has_length_trait_obj.from_length(actual_length);
+                                let original_len_terminal = children[len_node_idx]
+                                    .first_terminal_kind()
+                                    .expect("Length node must contain a terminal");
 
-                                // Generate a new terminal node with the new length.
-                                let new_len_leaf = new_node(
-                                    Symbol::Terminal {
-                                        kind: new_terminal_kind,
-                                    },
-                                    Some(vec![]),
-                                );
-                                let new_len_node = new_node(
-                                    children[len_node_idx].symbol.clone(),
-                                    Some(vec![new_len_leaf]),
-                                );
+                                if let Some(has_length_trait_obj) =
+                                    original_len_terminal.as_has_length()
+                                {
+                                    // Use the `HasLength` trait to convert the length to the actual value.
+                                    let new_terminal_kind =
+                                        has_length_trait_obj.from_length(actual_length);
 
-                                new_children[len_node_idx] = new_len_node;
-                                has_changed = true;
-                                break;
+                                    // Generate a new terminal node with the new length.
+                                    let new_len_leaf = new_node(
+                                        Symbol::Terminal {
+                                            kind: new_terminal_kind,
+                                        },
+                                        Some(vec![]),
+                                    );
+                                    let new_len_node = new_node(
+                                        children[len_node_idx].symbol.clone(),
+                                        Some(vec![new_len_leaf]),
+                                    );
+
+                                    new_children[len_node_idx] = new_len_node;
+                                    has_changed = true;
+                                    break;
+                                }
                             }
                         }
                     }
