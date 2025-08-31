@@ -3,6 +3,8 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use log::debug;
+
 use crate::{
     grammar::{Expansion, ExpansionCallback, Grammar},
     symbol::{DecodeError, DecodeResult, SharedState, Symbol, nt},
@@ -22,7 +24,7 @@ impl Grammar {
         match start_node.parse(input, self, &mut context) {
             Ok((remaining, tree)) => {
                 if !remaining.is_empty() {
-                    println!(
+                    debug!(
                         "Warning: Input not fully consumed. {} bytes remaining.",
                         remaining.len()
                     );
@@ -42,6 +44,11 @@ impl Symbol {
         grammar: &'a Grammar,
         context: &mut BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<DerivationTree>> {
+        debug!(
+            "--> SYMBOL PARSE: Trying to parse symbol: {:?}, input_len: {}",
+            self,
+            input.len()
+        );
         match self {
             // Parse NonTerminal
             Symbol::NonTerminal { label } => {
@@ -49,7 +56,15 @@ impl Symbol {
                     .get(label)
                     .ok_or(DecodeError::Invalid("Non-terminal not found in grammar"))?;
 
-                for expansion in expansions {
+                debug!(
+                    "    NT '{}': Found {} expansion(s)",
+                    label,
+                    expansions.len()
+                );
+
+                for (i, expansion) in expansions.iter().enumerate() {
+                    debug!("    NT '{}': Trying expansion #{}", label, i);
+
                     let mut temp_context = context.clone();
 
                     let parse_result = if let Some(boxed_callback) =
@@ -93,9 +108,22 @@ impl Symbol {
                         *context = temp_context;
                         let node = new_node(self.clone(), Some(children));
                         context.insert(label.clone(), node.clone());
+
+                        debug!(
+                            "<-- SYMBOL PARSE SUCCESS (NT '{}'), remaining_len: {}",
+                            label,
+                            remaining_input.len()
+                        );
+
                         return Ok((remaining_input, node));
+                    } else {
+                        debug!("    NT '{}': Expansion #{} FAILED.", label, i);
                     }
                 }
+                debug!(
+                    "<-- SYMBOL PARSE FAILED (NT '{}'): No expansion matched.",
+                    label
+                );
                 Err(DecodeError::Invalid("No expansion matched for NonTerminal"))
             }
             // Parse Terminal

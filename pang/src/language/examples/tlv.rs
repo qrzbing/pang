@@ -4,11 +4,11 @@ use std::collections::{BTreeMap, HashSet};
 use std::sync::Arc;
 
 use crate::grammar;
+use crate::parser::callback::big_endian_bytes_to_usize;
 use crate::{
     grammar::{ExpansionCallback, exp, exp_with_opts},
     language::Language,
     opts,
-    parser::callback::get_symbol_val,
     symbol::{
         DecodeError, nt,
         terminals::{
@@ -63,7 +63,10 @@ pub fn nest_tlv_lang() -> Language {
 
 /// An example callback function for length.
 pub fn len_callback(context: &BTreeMap<String, Arc<DerivationTree>>) -> Result<usize, DecodeError> {
-    let len = get_symbol_val(context, "len")?;
+    let len_tree = context.get("len").ok_or(DecodeError::Invalid(
+        "Symbol not found in context for length calculation",
+    ))?;
+    let len = big_endian_bytes_to_usize(&len_tree.to_bytes())?;
     Ok(len)
 }
 
@@ -103,6 +106,9 @@ pub fn asn1_tlv_lang() -> Language {
 fn asn1_tlv_len_callback(
     context: &BTreeMap<String, Arc<DerivationTree>>,
 ) -> Result<usize, DecodeError> {
-    let len = get_symbol_val(context, "asn1-tlv-len")?;
+    let len_tree = context.get("asn1-tlv-len").ok_or(DecodeError::Invalid(
+        "Symbol not found in context for length calculation",
+    ))?;
+    let len = big_endian_bytes_to_usize(&len_tree.to_bytes())?;
     Ok(len)
 }
