@@ -6,7 +6,7 @@ use std::sync::Arc;
 use log::debug;
 
 use crate::{
-    grammar::{Expansion, ExpansionCallback, Grammar},
+    grammar::{Expansion, Grammar},
     symbol::{DecodeError, DecodeResult, SharedState, Symbol, nt},
     tree::{DerivationTree, new_node},
 };
@@ -67,44 +67,9 @@ impl Symbol {
 
                     let mut temp_context = context.clone();
 
-                    let parse_result = if let Some(boxed_callback) =
-                        expansion.options.get("length_calculator")
+                    if let Ok((remaining_input, children)) =
+                        expansion.parse(input, grammar, &mut temp_context)
                     {
-                        // Get length from callback
-                        let length = if let Some(callback) =
-                            boxed_callback.downcast_ref::<ExpansionCallback>()
-                        {
-                            (*callback)(&temp_context)?
-                        } else {
-                            return Err(DecodeError::Invalid(
-                                "Option 'length_calculator' is not a valid callback",
-                            ));
-                        };
-
-                        if input.len() < length {
-                            Err(DecodeError::Incomplete(
-                                "Input too short for callback length",
-                            ))
-                        } else {
-                            let (slice_to_parse, remaining_after_slice) = input.split_at(length);
-                            let (rem_in_slice, children) = parse_expansion_symbols(
-                                slice_to_parse,
-                                expansion,
-                                grammar,
-                                &mut temp_context,
-                            )?;
-
-                            if !rem_in_slice.is_empty() {
-                                Err(DecodeError::Invalid("Expansion did not consume slice"))
-                            } else {
-                                Ok((remaining_after_slice, children))
-                            }
-                        }
-                    } else {
-                        parse_expansion_symbols(input, expansion, grammar, &mut temp_context)
-                    };
-
-                    if let Ok((remaining_input, children)) = parse_result {
                         *context = temp_context;
                         let node = new_node(self.clone(), Some(children));
                         context.insert(label.clone(), node.clone());
@@ -138,24 +103,50 @@ impl Symbol {
     }
 }
 
-fn parse_expansion_symbols<'a>(
-    input: &'a [u8],
-    expansion: &'a Expansion,
-    grammar: &'a Grammar,
-    context: &mut BTreeMap<String, Arc<DerivationTree>>,
-) -> DecodeResult<'a, Vec<Arc<DerivationTree>>> {
-    let mut remaining_input = input;
-    let mut children = Vec::new();
-    for symbol in &expansion.symbols {
-        match symbol.parse(remaining_input, grammar, context) {
-            Ok((next_input, child_node)) => {
-                remaining_input = next_input;
-                children.push(child_node);
+impl Expansion {
+    /// Parse an Expansion, applying callback if it exists.
+    pub fn parse<'a>(
+        &'a self,
+        input: &'a [u8],
+        grammar: &'a Grammar,
+        context: &mut BTreeMap<String, Arc<DerivationTree>>,
+    ) -> DecodeResult<'a, Vec<Arc<DerivationTree>>> {
+        // Helper function to parse the sequence of symbols.
+        fn parse_symbols<'b>(
+            input_slice: &'b [u8],
+            expansion: &'b Expansion,
+            grammar: &'b Grammar,
+            context: &mut BTreeMap<String, Arc<DerivationTree>>,
+        ) -> DecodeResult<'b, Vec<Arc<DerivationTree>>> {
+            let mut remaining_input = input_slice;
+            let mut children = Vec::new();
+            for symbol in &expansion.symbols {
+                match symbol.parse(remaining_input, grammar, context) {
+                    Ok((next_input, child_node)) => {
+                        remaining_input = next_input;
+                        children.push(child_node);
+                    }
+                    Err(e) => return Err(e),
+                }
             }
-            Err(e) => return Err(e),
+            Ok((remaining_input, children))
+        }
+        if let Some(callback) = self.decode_callback {
+            let (remaining_after_slice, data_for_expansion) = callback(input, context)?;
+            let (rem_in_slice, children) =
+                parse_symbols(&data_for_expansion, self, grammar, context)?;
+            // The preprocessed data must be consumed entirely.
+            if !rem_in_slice.is_empty() {
+                return Err(DecodeError::Invalid(
+                    "Expansion did not consume the entire slice from decode_callback",
+                ));
+            }
+            Ok((remaining_after_slice, children))
+        } else {
+            // Default behavior: parse the input directly.
+            parse_symbols(input, self, grammar, context)
         }
     }
-    Ok((remaining_input, children))
 }
 
 #[cfg(test)]

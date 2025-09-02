@@ -1,11 +1,11 @@
 //! Grammar can show the structure and syntax of language.
 
 use std::{
-    any::Any,
     collections::{BTreeMap, HashMap, HashSet},
     fmt,
     hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
+    ptr,
     sync::Arc,
 };
 
@@ -18,49 +18,59 @@ use crate::{
 
 pub mod macros;
 
-/// ExpansionCallback takes a context and returns helping value.
-pub type ExpansionCallback =
-    fn(context: &BTreeMap<String, Arc<DerivationTree>>) -> Result<usize, DecodeError>;
-
-/// Grammar can extend to do some user-defined actions by ExpansionOptions.
-pub type ExpansionOptions = BTreeMap<String, Arc<dyn Any + Send + Sync>>;
-
-/// Create a new Expansion with empty options.
+/// Create a new Expansion with empty callbacks.
 pub fn exp(symbols: Vec<Symbol>) -> Expansion {
     Expansion {
         symbols,
-        options: ExpansionOptions::new(),
+        decode_callback: None,
+        encode_callback: None,
     }
 }
 
-/// Create a new Expansion with options.
-pub fn exp_with_opts(symbols: Vec<Symbol>, options: ExpansionOptions) -> Expansion {
-    Expansion { symbols, options }
+/// Create a new Expansion with callbacks.
+pub fn exp_cb(
+    symbols: Vec<Symbol>,
+    decode_callback: Option<DecodeCallback>,
+    encode_callback: Option<EncodeCallback>,
+) -> Expansion {
+    Expansion::with_callback(symbols, decode_callback, encode_callback)
 }
+
+/// DecodeCallback takes an input slice and a context, returning the remaining
+/// input and an owned slice to be parsed by the expansion.
+/// The new owned slice allows for preprocessing, such as decompression.
+pub type DecodeCallback = for<'a> fn(
+    input: &'a [u8],
+    context: &BTreeMap<String, Arc<DerivationTree>>,
+) -> Result<(&'a [u8], Vec<u8>), DecodeError>;
+
+/// EncodeCallback takes a node and returns a new node with user custom encoding.
+pub type EncodeCallback = fn(node: Arc<DerivationTree>) -> Arc<DerivationTree>;
 
 /// Expansion contains a sequence of symbols and options.
 #[derive(Clone, Debug)]
 pub struct Expansion {
     /// Symbols in the expansion.
     pub symbols: Vec<Symbol>,
-    /// Options for the expansion.
-    pub options: ExpansionOptions,
+    /// An optional callback to process input stream before parsing [`Symbol`]
+    pub decode_callback: Option<DecodeCallback>,
+    /// An optional callback to encode a node after generating an [`Expansion`]
+    pub encode_callback: Option<EncodeCallback>,
 }
 
 impl PartialEq for Expansion {
     fn eq(&self, other: &Self) -> bool {
-        if self.symbols != other.symbols {
-            return false;
-        }
-        if self.options.len() != other.options.len() {
-            return false;
-        }
-        for ((k1, v1), (k2, v2)) in self.options.iter().zip(other.options.iter()) {
-            if k1 != k2 || !Arc::ptr_eq(v1, v2) {
-                return false;
+        self.symbols == other.symbols
+            && match (self.decode_callback, other.decode_callback) {
+                (None, None) => true,
+                (Some(f), Some(g)) => ptr::fn_addr_eq(f, g),
+                _ => false,
             }
-        }
-        true
+            && match (self.encode_callback, other.encode_callback) {
+                (None, None) => true,
+                (Some(f), Some(g)) => ptr::fn_addr_eq(f, g),
+                _ => false,
+            }
     }
 }
 
@@ -69,14 +79,34 @@ impl Eq for Expansion {}
 impl Hash for Expansion {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.symbols.hash(state);
-        for (key, value) in &self.options {
-            key.hash(state);
-            Arc::as_ptr(value).hash(state);
-        }
+        self.decode_callback.map(|cb| cb as usize).hash(state);
+        self.encode_callback.map(|cb| cb as usize).hash(state);
     }
 }
 
 impl Expansion {
+    /// Creates a new Expansion without callback.
+    pub fn new(symbols: Vec<Symbol>) -> Self {
+        Self {
+            symbols,
+            decode_callback: None,
+            encode_callback: None,
+        }
+    }
+
+    /// Creates a new Expansion with callback.
+    pub fn with_callback(
+        symbols: Vec<Symbol>,
+        decode_callback: Option<DecodeCallback>,
+        encode_callback: Option<EncodeCallback>,
+    ) -> Self {
+        Self {
+            symbols,
+            decode_callback: decode_callback,
+            encode_callback: encode_callback,
+        }
+    }
+
     /// Get all nonterminals from a given expansion.
     ///
     /// # Examples

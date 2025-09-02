@@ -4,11 +4,18 @@
 
 ### Features
 
-- Now `Expansion` accepts `ExpansionOptions`, which has more options to control the expansion.
+- Add `EncodeCallback` and `DecodeCallback` in `Expansion` to customize the encoding and decoding process.
+- Add `exp_cb` to add Callbacks to Expansion.
 
 ### Changed
 
-- Rename `GrammarOptions` to `ExpansionOptions`, and change its type to `BTreeMap<String, Arc<dyn Any + Send + Sync>>`.
+- Now `Generator` is no need to add `TreeFixer`.
+
+### Removed
+
+- Remove `TreeFixer`, now they are defined (to fix) directly in `Expansion` by `EncodeCallback`.
+- Remove `GrammarOptions` and `opts`, now user can use `DecodeCallback` to customize the decoding process.
+- Remove `exp_with_opts`, now user can use `exp_cb` to add Callbacks to Expansion.
 
 ## 0.1.3 - 2025-08-29
 

@@ -64,7 +64,7 @@ fn regenerate_node_at<R: Rand>(
             // For non-terminals, generate a new subtree
             match &tree.symbol {
                 Symbol::NonTerminal { label } => {
-                    return lang.grammar.generate_combinator(label, rng, &[]);
+                    return lang.grammar.generate_combinator(label, rng);
                 }
                 Symbol::Terminal { kind } => return kind.generate(rng),
             }

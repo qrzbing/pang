@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::{
     grammar::{Expansion, Grammar},
     symbol::{Symbol, nt, terminals::DynRand},
-    tree::{DerivationTree, TreeFixer, new_node},
+    tree::{DerivationTree, new_node},
 };
 
 /// Generator for [`Grammar`].
@@ -15,17 +15,10 @@ impl Grammar {
         &self,
         start_symbol: &str,
         rng: &mut dyn DynRand,
-        fixers: &[Arc<dyn TreeFixer>],
     ) -> Arc<DerivationTree> {
-        let start_node = nt(start_symbol);
-
-        // 1. Generate the basic tree structure.
-        let generated_tree = start_node
+        nt(start_symbol)
             .generate(self, rng)
-            .expect(&format!("Generation from {} should not fail", start_symbol));
-
-        // 2. Apply fixers to fix context-dependent values (e.g., length, etc.).
-        generated_tree.fix_tree(self, fixers)
+            .expect(&format!("Generation from {} should not fail", start_symbol))
     }
 }
 
@@ -52,7 +45,12 @@ impl Symbol {
 
                 let children = chosen_expansion.generate(grammar, rng)?;
                 let node = new_node(self.clone(), Some(children));
-                Ok(node)
+
+                if let Some(callback) = chosen_expansion.encode_callback {
+                    Ok(callback(node))
+                } else {
+                    Ok(node)
+                }
             }
 
             Symbol::Terminal { kind } => Ok(kind.generate(rng)),
@@ -82,16 +80,13 @@ impl Expansion {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Once};
+    use std::sync::Once;
 
     use libafl_bolts::rands::StdRand;
 
-    use crate::{
-        language::{
-            asn1_tlv_lang,
-            examples::tlv::{nest_tlv_lang, tlv_lang},
-        },
-        tree::fixer::LengthIsFixer,
+    use crate::language::{
+        asn1_tlv_lang,
+        examples::tlv::{nest_tlv_lang, tlv_lang},
     };
 
     static INIT: Once = Once::new();
@@ -107,8 +102,7 @@ mod tests {
         setup_logger();
         let mut rng = StdRand::with_seed(1);
         let grammar = tlv_lang().grammar;
-        let tree =
-            grammar.generate_combinator("start", &mut rng, &[Arc::new(LengthIsFixer::new())]);
+        let tree = grammar.generate_combinator("start", &mut rng);
         let len_terminal_val = tree
             .at(&[0, 1])
             .unwrap()
@@ -126,11 +120,9 @@ mod tests {
     fn test_generate_nest_tlv_lang() {
         setup_logger();
         let mut rng = StdRand::with_seed(0);
-        let tree = nest_tlv_lang().grammar.generate_combinator(
-            "start",
-            &mut rng,
-            &[Arc::new(LengthIsFixer::new())],
-        );
+        let tree = nest_tlv_lang()
+            .grammar
+            .generate_combinator("start", &mut rng);
         let len = tree
             .at(&[0, 1])
             .unwrap()
@@ -160,11 +152,9 @@ mod tests {
     fn test_generate_asn1_lang() {
         setup_logger();
         let mut rng = StdRand::with_seed(0);
-        let tree = asn1_tlv_lang().grammar.generate_combinator(
-            "asn1-tlv",
-            &mut rng,
-            &[Arc::new(LengthIsFixer::new())],
-        );
+        let tree = asn1_tlv_lang()
+            .grammar
+            .generate_combinator("asn1-tlv", &mut rng);
         let len = tree
             .at(&[1])
             .unwrap()

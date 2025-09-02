@@ -43,7 +43,7 @@ Welcome to `PANG`
 
 mod generator;
 pub mod grammar;
-pub use grammar::{ExpansionCallback, Grammar, exp, exp_with_opts};
+pub use grammar::{DecodeCallback, EncodeCallback, Expansion, Grammar, exp, exp_cb};
 pub mod language;
 pub use language::Language;
 pub mod parser;

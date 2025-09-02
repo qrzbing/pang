@@ -9,7 +9,7 @@ use crate::{
     grammar::Grammar,
     parser::Region,
     symbol::{DecodeError, Symbol, terminals::DynRand},
-    tree::{DerivationTree, TreeFixer},
+    tree::DerivationTree,
 };
 
 // #[doc(hidden)]
@@ -57,13 +57,8 @@ impl Language {
     }
 
     /// Generate random input based on [`Grammar`].
-    pub fn generate(
-        &self,
-        rng: &mut dyn DynRand,
-        fixers: &[Arc<dyn TreeFixer>],
-    ) -> Arc<DerivationTree> {
-        self.grammar
-            .generate_combinator(&self.start_symbol, rng, fixers)
+    pub fn generate(&self, rng: &mut dyn DynRand) -> Arc<DerivationTree> {
+        self.grammar.generate_combinator(&self.start_symbol, rng)
     }
 
     /// TODO: Once input can not be fully parsed, collect its regions and return.
