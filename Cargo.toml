@@ -6,13 +6,13 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.1.3"
+version = "0.1.4"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/qrzbing/pang/"
 readme = "./README.md"
 
 [workspace.dependencies]
-pang = { path = "pang", version = "0.1.3" }
+pang = { path = "pang", version = "0.1.4" }
 libafl_bolts = { version = "0.15.3" }
 libafl = { version = "0.15.3" }
 
