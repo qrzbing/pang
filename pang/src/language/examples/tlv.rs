@@ -3,11 +3,11 @@
 use std::collections::{BTreeMap, HashSet};
 use std::sync::Arc;
 
-use crate::grammar;
+use crate::{exp_dc, exp_ec, grammar};
 
 use crate::tree::new_node;
 use crate::{
-    DerivationTree, Language, exp, exp_cb, nt, parser::callback::big_endian_bytes_to_usize,
+    DerivationTree, Language, exp, nt, parser::callback::big_endian_bytes_to_usize,
     symbol::DecodeError, t_ber, t_bytes, t_bytes_val, t_dyn,
 };
 
@@ -16,12 +16,12 @@ pub fn tlv_lang() -> Language {
     let grammar = grammar! {
         "start" => vec![exp(vec![nt("tlv")])],
         "tlv" => vec![
-            exp_cb(vec![nt("type"), nt("len"), nt("value")], None, Some(len_encode_callbackfn)),
+            exp_ec(vec![nt("type"), nt("len"), nt("value")], len_encode_callbackfn),
         ],
         "type" => vec![exp(vec![t_bytes(4)])],
         "len" => vec![exp(vec![t_bytes(4)])],
         "value" => vec![
-            exp_cb(vec![t_dyn()], Some(len_decode_callbackfn), None)
+            exp_dc(vec![t_dyn()], len_decode_callbackfn)
         ],
     };
     Language::new(grammar, "start", HashSet::new())
@@ -31,12 +31,12 @@ pub fn tlv_lang() -> Language {
 pub fn nest_tlv_lang() -> Language {
     let grammar = grammar! {
         "start" => vec![exp(vec![nt("tlv")])],
-        "tlv" => vec![exp_cb(vec![nt("type"), nt("len"), nt("value")], None, Some(len_encode_callbackfn)),],
+        "tlv" => vec![exp_ec(vec![nt("type"), nt("len"), nt("value")], len_encode_callbackfn),],
         "type" => vec![exp(vec![t_bytes(4)])],
         "len" => vec![exp(vec![t_bytes(4)])],
         "value" => vec![
             exp(vec![nt("tlv")]),
-            exp_cb(vec![t_dyn()], Some(len_decode_callbackfn), None)
+            exp_dc(vec![t_dyn()], len_decode_callbackfn)
         ],
     };
     Language::new(grammar, "start", HashSet::new())
@@ -90,9 +90,9 @@ pub fn len_encode_callbackfn(node: Arc<DerivationTree>) -> Arc<DerivationTree> {
 pub fn asn1_tlv_lang() -> Language {
     let grammar = grammar!(
         "asn1-tlv" => vec![
-            exp_cb(
+            exp_ec(
                 vec![nt("asn1-tlv-type"),nt("asn1-tlv-len"),nt("asn1-tlv-value")],
-                None, Some(len_encode_callbackfn)
+                len_encode_callbackfn
             ),
         ],
         "asn1-tlv-type" => vec![
@@ -106,7 +106,7 @@ pub fn asn1_tlv_lang() -> Language {
             exp(vec![t_ber()])
         ],
         "asn1-tlv-value" => vec![
-            exp_cb(vec![t_dyn()], Some(asn1_tlv_len_decode_callbackfn), None)
+            exp_dc(vec![t_dyn()], asn1_tlv_len_decode_callbackfn)
         ],
     );
     Language::new(grammar, "asn1-tlv", HashSet::new())

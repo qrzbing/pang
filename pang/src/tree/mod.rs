@@ -4,7 +4,10 @@ use std::{fmt, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::symbol::{Symbol, terminals::TerminalKind};
+use crate::{
+    Grammar,
+    symbol::{Symbol, terminals::TerminalKind},
+};
 
 /// DerivationTree is designed to represent for grammar,
 ///
@@ -52,10 +55,7 @@ impl DerivationTree {
     /// # Examples
     ///
     /// ```
-    /// use pang::{
-    ///     symbol::{nt, terminals::literal::t},
-    ///     tree::new_node,
-    /// };
+    /// use pang::{nt, t, new_node};
     ///
     /// let tree = new_node(
     ///     nt("start"),
@@ -119,10 +119,7 @@ impl DerivationTree {
     /// # Examples
     ///
     /// ```
-    /// use pang::{
-    ///     symbol::{nt, terminals::literal::t},
-    ///     tree::new_node,
-    /// };
+    /// use pang::{nt, t, new_node};
     /// let tree = new_node(
     ///     nt("start"),
     ///     Some(vec![new_node(
@@ -214,13 +211,8 @@ impl DerivationTree {
     /// # Examples
     ///
     /// ```
-    /// use pang::{
-    ///     symbol::{
-    ///         nt,
-    ///         terminals::{bytes::t_bytes_val, literal::t},
-    ///     },
-    ///     tree::new_node,
-    /// };
+    /// use pang::{nt, t, new_node, t_bytes_val};
+    ///
     /// let tree = new_node(
     ///     nt("start"),
     ///     Some(vec![new_node(
@@ -262,10 +254,8 @@ impl DerivationTree {
     /// # Examples
     ///
     /// ```
-    /// use pang::{
-    ///     symbol::{nt, terminals::literal::t},
-    ///     tree::new_node,
-    /// };
+    /// use pang::{nt, t, new_node};
+    ///
     /// let tree = new_node(
     ///     nt("start"),
     ///     Some(vec![new_node(
@@ -314,10 +304,8 @@ impl DerivationTree {
     /// # Examples
     ///
     /// ```
-    /// use pang::{
-    ///     symbol::{nt, terminals::literal::t},
-    ///     tree::new_node,
-    /// };
+    /// use pang::{nt, t, new_node};
+    ///
     /// let tree = new_node(
     ///     nt("start"),
     ///     Some(vec![new_node(
@@ -372,6 +360,55 @@ impl DerivationTree {
                 }
             }
         }
+    }
+
+    /// Fix the derivation tree by Expansion Callback.
+    pub fn fix(self: &Arc<Self>, grammar: &Grammar) -> Arc<DerivationTree> {
+        // Fix children first
+        let new_children = if let Some(children) = &self.children {
+            let fixed_children: Vec<Arc<DerivationTree>> =
+                children.iter().map(|child| child.fix(grammar)).collect();
+            Some(fixed_children)
+        } else {
+            None
+        };
+
+        // Create a new node if children have changed.
+        let mut current_node = if self.children == new_children {
+            self.clone()
+        } else {
+            Arc::new(DerivationTree {
+                symbol: self.symbol.clone(),
+                children: new_children,
+            })
+        };
+
+        // Apply the encode callback for current node.
+        if let Symbol::NonTerminal { label } = &self.symbol {
+            if let (Some(expansions), Some(children)) = (grammar.get(label), &current_node.children)
+            {
+                // Find the matching expansion for the current node's structure.
+                for expansion in expansions {
+                    if expansion.symbols.len() == children.len()
+                        && expansion
+                            .symbols
+                            .iter()
+                            .zip(children.iter())
+                            .all(|(sym, child)| &child.symbol == sym)
+                    {
+                        // Found the expansion that generated this node.
+                        if let Some(callback) = expansion.encode_callback {
+                            // Apply the callback to fix the node.
+                            current_node = callback(current_node);
+                        }
+                        // Assuming one expansion matches, break.
+                        break;
+                    }
+                }
+            }
+        }
+
+        current_node
     }
 }
 

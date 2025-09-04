@@ -101,7 +101,7 @@ pub fn t_dyn() -> Symbol {
 }
 
 /// Consume all the input and return DynamicTerminal.
-pub fn t_dyn_value(value: &[u8]) -> Symbol {
+pub fn t_dyn_val(value: &[u8]) -> Symbol {
     Symbol::Terminal {
         kind: Arc::new(DynamicTerminal::from_bytes(value)),
     }

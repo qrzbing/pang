@@ -12,8 +12,8 @@ use std::{
 use log::error;
 
 use crate::{
+    DerivationTree,
     symbol::{DecodeError, Symbol},
-    tree::DerivationTree,
 };
 
 pub mod macros;
@@ -30,10 +30,20 @@ pub fn exp(symbols: Vec<Symbol>) -> Expansion {
 /// Create a new Expansion with callbacks.
 pub fn exp_cb(
     symbols: Vec<Symbol>,
-    decode_callback: Option<DecodeCallback>,
-    encode_callback: Option<EncodeCallback>,
+    decode_callback: DecodeCallback,
+    encode_callback: EncodeCallback,
 ) -> Expansion {
-    Expansion::with_callback(symbols, decode_callback, encode_callback)
+    Expansion::with_callback(symbols, Some(decode_callback), Some(encode_callback))
+}
+
+/// Create a new Expansion with decode callback.
+pub fn exp_dc(symbols: Vec<Symbol>, decode_callback: DecodeCallback) -> Expansion {
+    Expansion::with_callback(symbols, Some(decode_callback), None)
+}
+
+/// Create a new Expansion with decode callback.
+pub fn exp_ec(symbols: Vec<Symbol>, encode_callback: EncodeCallback) -> Expansion {
+    Expansion::with_callback(symbols, None, Some(encode_callback))
 }
 
 /// DecodeCallback takes an input slice and a context, returning the remaining
@@ -112,10 +122,7 @@ impl Expansion {
     /// # Examples
     ///
     /// ```
-    /// use pang::{
-    ///     grammar::exp,
-    ///     symbol::{nt, terminals::literal::t},
-    /// };
+    /// use pang::{exp, nt, t};
     ///
     /// let expansion = exp(vec![nt("expr"), t("+"), nt("term"), t("-"), nt("factor")]);
     /// let result = expansion.nonterminals();
@@ -216,7 +223,7 @@ impl Grammar {
     /// # Examples
     ///
     /// ```
-    /// use pang::{grammar::Grammar, language::expr_lang};
+    /// use pang::{Grammar, language::expr_lang};
     /// let grammar1 = expr_lang().grammar;
     /// let grammar2 = Grammar::new();
     ///
@@ -336,10 +343,8 @@ impl Grammar {
     ///
     /// ```
     /// use pang::{
-    ///     grammar,
-    ///     grammar::exp,
+    ///     grammar, exp, nt, t,
     ///     language::{expr_lang, xml_lang},
-    ///     symbol::{nt, terminals::literal::t},
     /// };
     /// let grammar = expr_lang().grammar;
     /// assert_eq!(grammar.is_valid("start"), true);

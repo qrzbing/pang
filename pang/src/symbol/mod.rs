@@ -13,10 +13,10 @@ use serde::{Deserialize, Serialize};
 pub mod terminals;
 pub use terminals::{
     TerminalKind,
-    ber_length::{BerLengthTerminal, t_ber},
+    ber_length::{BerLengthTerminal, t_ber, t_ber_val},
     bits::{BitsTerminal, t_bis_val, t_bits},
     bytes::{BytesTerminal, t_bytes, t_bytes_val},
-    dynamic::{DynamicTerminal, t_dyn, t_dyn_value},
+    dynamic::{DynamicTerminal, t_dyn, t_dyn_val},
     literal::{LiteralTerminal, t},
 };
 pub mod traits;

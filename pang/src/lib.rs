@@ -43,11 +43,15 @@ Welcome to `PANG`
 
 mod generator;
 pub mod grammar;
-pub use grammar::{DecodeCallback, EncodeCallback, Expansion, Grammar, exp, exp_cb};
+pub use grammar::{
+    DecodeCallback, EncodeCallback, Expansion, Grammar, exp, exp_cb, exp_dc, exp_ec,
+};
 pub mod language;
 pub use language::Language;
 pub mod parser;
 pub mod symbol;
-pub use symbol::{nt, t, t_ber, t_bis_val, t_bits, t_bytes, t_bytes_val, t_dyn, t_dyn_value};
+pub use symbol::{
+    Symbol, nt, t, t_ber, t_ber_val, t_bis_val, t_bits, t_bytes, t_bytes_val, t_dyn, t_dyn_val,
+};
 pub mod tree;
-pub use tree::DerivationTree;
+pub use tree::{DerivationTree, new_node};

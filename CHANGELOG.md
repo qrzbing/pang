@@ -5,7 +5,10 @@
 ### Features
 
 - Add `EncodeCallback` and `DecodeCallback` in `Expansion` to customize the encoding and decoding process.
-- Add `exp_cb` to add Callbacks to Expansion.
+    - Add `exp_dc` to add DecodeCallback to Expansion.
+    - Add `exp_ec` to add EncodeCallback to Expansion.
+    - Add `exp_cb` to add DecodeCallback and EncodeCallback to Expansion.
+- Add `fix` method for `DerivationTree`, which fix the derivation tree by applying `EncodeCallback` in `Expansion`.
 
 ### Changed
 

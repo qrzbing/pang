@@ -207,3 +207,10 @@ pub fn t_ber() -> Symbol {
         kind: Arc::new(BerLengthTerminal::new()),
     }
 }
+
+/// Create a BER Length Terminal with value.
+pub fn t_ber_val(value: usize) -> Symbol {
+    Symbol::Terminal {
+        kind: Arc::new(BerLengthTerminal::from_usize(value)),
+    }
+}

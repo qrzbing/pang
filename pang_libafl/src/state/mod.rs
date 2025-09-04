@@ -30,7 +30,7 @@ pub struct PangMutateState {
 
 impl PangMutateState {
     /// Create a new [`PangMutateState`] with the given parser.
-    pub fn new(grammar: Grammar) -> Self
+    pub fn new(grammar: &Grammar) -> Self
 where {
         let mut fragments = HashMap::new();
         for key in grammar.keys() {

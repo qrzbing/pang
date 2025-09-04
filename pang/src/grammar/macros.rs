@@ -5,11 +5,7 @@
 /// Examples:
 ///
 /// ```
-/// use pang::{
-///     grammar,
-///     grammar::exp,
-///     symbol::{nt, terminals::literal::t}
-/// };
+/// use pang::{grammar, exp, nt, t};
 ///
 /// let grammar = grammar! {
 ///     "start" => vec![exp(vec![nt("digit"), t("+"), nt("digit")])],
