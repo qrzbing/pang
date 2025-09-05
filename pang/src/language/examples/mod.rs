@@ -76,7 +76,7 @@ pub fn expr_lang() -> Language {
         "digit" => srange(DIGITS)
     };
 
-    Language::new(grammar, "start", HashSet::new())
+    Language::new(&grammar, "start", HashSet::new())
 }
 
 /// A simple language.
@@ -92,5 +92,5 @@ pub fn c_sample_lang() -> Language {
         "D" => vec![exp(vec![t("d")])]
     };
 
-    Language::new(grammar, "start", HashSet::new())
+    Language::new(&grammar, "start", HashSet::new())
 }

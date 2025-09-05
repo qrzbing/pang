@@ -24,7 +24,7 @@ pub fn tlv_lang() -> Language {
             exp_dc(vec![t_dyn()], len_decode_callbackfn)
         ],
     };
-    Language::new(grammar, "start", HashSet::new())
+    Language::new(&grammar, "start", HashSet::new())
 }
 
 /// Generate a nested TLV grammar.
@@ -39,7 +39,7 @@ pub fn nest_tlv_lang() -> Language {
             exp_dc(vec![t_dyn()], len_decode_callbackfn)
         ],
     };
-    Language::new(grammar, "start", HashSet::new())
+    Language::new(&grammar, "start", HashSet::new())
 }
 
 /// An example Decode callback function for length.
@@ -109,7 +109,7 @@ pub fn asn1_tlv_lang() -> Language {
             exp_dc(vec![t_dyn()], asn1_tlv_len_decode_callbackfn)
         ],
     );
-    Language::new(grammar, "asn1-tlv", HashSet::new())
+    Language::new(&grammar, "asn1-tlv", HashSet::new())
 }
 
 fn asn1_tlv_len_decode_callbackfn<'a>(

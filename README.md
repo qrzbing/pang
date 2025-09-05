@@ -2,7 +2,8 @@
 
 PANG is a Parser ANd Generator combinator library.
 
-[Changelog](CHANGELOG.md)
+- [Changelog](CHANGELOG.md)
+- [Examples](https://github.com/qrzbing/pang_examples)
 
 ## Resources
 

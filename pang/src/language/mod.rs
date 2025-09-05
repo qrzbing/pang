@@ -32,10 +32,10 @@ pub struct Language {
 
 impl Language {
     /// Create a new Language.
-    pub fn new(grammar: Grammar, start_symbol: &str, tokens: HashSet<String>) -> Self {
+    pub fn new(grammar: &Grammar, start_symbol: &str, tokens: HashSet<String>) -> Self {
         assert!(grammar.is_valid(start_symbol));
         Self {
-            grammar,
+            grammar: grammar.clone(),
             start_symbol: start_symbol.to_string(),
             tokens,
         }
