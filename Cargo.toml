@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "pang",
-    "pang_libafl",
 ]
 resolver = "2"
 
