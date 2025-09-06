@@ -15,35 +15,35 @@ pub fn xml_lang() -> Language {
     let letter_chars = format!("{}{}{}{}{}", ASCII_LETTERS, DIGITS, "\"", "'", ".");
     let letter_space_chars = format!("{}{}{}{}{}{}", ASCII_LETTERS, DIGITS, "\"", "'", " ", "\t");
     let grammar = grammar! {
-        "start" => vec![exp(vec![nt("xml-tree")])],
-        "xml-tree" => vec![
-            exp(vec![nt("text")]),
-            exp(vec![nt("xml-open-tag"), nt("xml-tree"), nt("xml-close-tag")]),
-            exp(vec![nt("xml-openclose-tag")]),
-            exp(vec![nt("xml-tree"), nt("xml-tree")]),
+        "start" => [exp([nt("xml-tree")])],
+        "xml-tree" => [
+            exp([nt("text")]),
+            exp([nt("xml-open-tag"), nt("xml-tree"), nt("xml-close-tag")]),
+            exp([nt("xml-openclose-tag")]),
+            exp([nt("xml-tree"), nt("xml-tree")]),
         ],
-        "xml-open-tag" => vec![
-            exp(vec![t("<"), nt("id"), t(">")]),
-            exp(vec![t("<"), nt("id"), t(" "), nt("xml-attribute"), t(">")]),
+        "xml-open-tag" => [
+            exp([t("<"), nt("id"), t(">")]),
+            exp([t("<"), nt("id"), t(" "), nt("xml-attribute"), t(">")]),
         ],
-        "xml-openclose-tag" => vec![
-            exp(vec![t("<"), nt("id"), t("/>")]),
-            exp(vec![t("<"), nt("id"), t(" "), nt("xml-attribute"), t("/>")]),
+        "xml-openclose-tag" => [
+            exp([t("<"), nt("id"), t("/>")]),
+            exp([t("<"), nt("id"), t(" "), nt("xml-attribute"), t("/>")]),
         ],
-        "xml-close-tag" => vec![
-            exp(vec![t("</"), nt("id"), t(">")])
+        "xml-close-tag" => [
+            exp([t("</"), nt("id"), t(">")])
         ],
-        "xml-attribute" => vec![
-            exp(vec![nt("id"), t("="), nt("id")]),
-            exp(vec![nt("xml-attribute"), t(" "), nt("xml-attribute")]),
+        "xml-attribute" => [
+            exp([nt("id"), t("="), nt("id")]),
+            exp([nt("xml-attribute"), t(" "), nt("xml-attribute")]),
         ],
-        "id" => vec![
-            exp(vec![nt("letter")]),
-            exp(vec![nt("id"), nt("letter")]),
+        "id" => [
+            exp([nt("letter")]),
+            exp([nt("id"), nt("letter")]),
         ],
-        "text" => vec![
-            exp(vec![nt("text"), nt("letter_space")]),
-            exp(vec![nt("letter_space")]),
+        "text" => [
+            exp([nt("text"), nt("letter_space")]),
+            exp([nt("letter_space")]),
         ],
         "letter" => srange(&letter_chars),
         "letter_space" => srange(&letter_space_chars)

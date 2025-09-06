@@ -19,31 +19,31 @@ use crate::{
 pub mod macros;
 
 /// Create a new Expansion with empty callbacks.
-pub fn exp(symbols: Vec<Symbol>) -> Expansion {
+pub fn exp<T: Into<Vec<Symbol>>>(symbols: T) -> Expansion {
     Expansion {
-        symbols,
+        symbols: symbols.into(),
         decode_callback: None,
         encode_callback: None,
     }
 }
 
 /// Create a new Expansion with callbacks.
-pub fn exp_cb(
-    symbols: Vec<Symbol>,
+pub fn exp_cb<T: Into<Vec<Symbol>>>(
+    symbols: T,
     decode_callback: DecodeCallback,
     encode_callback: EncodeCallback,
 ) -> Expansion {
-    Expansion::with_callback(symbols, Some(decode_callback), Some(encode_callback))
+    Expansion::with_callback(symbols.into(), Some(decode_callback), Some(encode_callback))
 }
 
 /// Create a new Expansion with decode callback.
-pub fn exp_dc(symbols: Vec<Symbol>, decode_callback: DecodeCallback) -> Expansion {
-    Expansion::with_callback(symbols, Some(decode_callback), None)
+pub fn exp_dc<T: Into<Vec<Symbol>>>(symbols: T, decode_callback: DecodeCallback) -> Expansion {
+    Expansion::with_callback(symbols.into(), Some(decode_callback), None)
 }
 
 /// Create a new Expansion with decode callback.
-pub fn exp_ec(symbols: Vec<Symbol>, encode_callback: EncodeCallback) -> Expansion {
-    Expansion::with_callback(symbols, None, Some(encode_callback))
+pub fn exp_ec<T: Into<Vec<Symbol>>>(symbols: T, encode_callback: EncodeCallback) -> Expansion {
+    Expansion::with_callback(symbols.into(), None, Some(encode_callback))
 }
 
 /// DecodeCallback takes an input slice and a context, returning the remaining
@@ -124,9 +124,9 @@ impl Expansion {
     /// ```
     /// use pang::{exp, nt, t};
     ///
-    /// let expansion = exp(vec![nt("expr"), t("+"), nt("term"), t("-"), nt("factor")]);
+    /// let expansion = exp([nt("expr"), t("+"), nt("term"), t("-"), nt("factor")]);
     /// let result = expansion.nonterminals();
-    /// assert_eq!(result, vec!["expr", "term", "factor"]);
+    /// assert_eq!(result, ["expr", "term", "factor"]);
     /// ```
     pub fn nonterminals(&self) -> Vec<String> {
         self.symbols
@@ -193,7 +193,7 @@ impl fmt::Display for Grammar {
                         "├── "
                     };
 
-                    // e.g., vec![nt("id"), t(b"="), nt("id")] -> "<id>=\"=\"<id>"
+                    // e.g., [nt("id"), t(b"="), nt("id")] -> "<id>=\"=\"<id>"
                     let expansion_str: String = expansion
                         .symbols
                         .iter()
@@ -350,8 +350,8 @@ impl Grammar {
     /// assert_eq!(grammar.is_valid("start"), true);
     ///
     /// let grammar = grammar! {
-    ///     "start" => vec![exp(vec![nt("x")])],
-    ///     "y" => vec![exp(vec![t("1")])]
+    ///     "start" => [exp([nt("x")])],
+    ///     "y" => [exp([t("1")])]
     /// };
     ///
     /// assert_eq!(grammar.is_valid("start"), false);

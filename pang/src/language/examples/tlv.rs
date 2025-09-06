@@ -14,14 +14,14 @@ use crate::{
 /// Generate a TLV language.
 pub fn tlv_lang() -> Language {
     let grammar = grammar! {
-        "start" => vec![exp(vec![nt("tlv")])],
-        "tlv" => vec![
-            exp_ec(vec![nt("type"), nt("len"), nt("value")], len_encode_callbackfn),
+        "start" => [exp([nt("tlv")])],
+        "tlv" => [
+            exp_ec([nt("type"), nt("len"), nt("value")], len_encode_callbackfn),
         ],
-        "type" => vec![exp(vec![t_bytes(4)])],
-        "len" => vec![exp(vec![t_bytes(4)])],
-        "value" => vec![
-            exp_dc(vec![t_dyn()], len_decode_callbackfn)
+        "type" => [exp([t_bytes(4)])],
+        "len" => [exp([t_bytes(4)])],
+        "value" => [
+            exp_dc([t_dyn()], len_decode_callbackfn)
         ],
     };
     Language::new(&grammar, "start", HashSet::new())
@@ -30,13 +30,13 @@ pub fn tlv_lang() -> Language {
 /// Generate a nested TLV grammar.
 pub fn nest_tlv_lang() -> Language {
     let grammar = grammar! {
-        "start" => vec![exp(vec![nt("tlv")])],
-        "tlv" => vec![exp_ec(vec![nt("type"), nt("len"), nt("value")], len_encode_callbackfn),],
-        "type" => vec![exp(vec![t_bytes(4)])],
-        "len" => vec![exp(vec![t_bytes(4)])],
-        "value" => vec![
-            exp(vec![nt("tlv")]),
-            exp_dc(vec![t_dyn()], len_decode_callbackfn)
+        "start" => [exp([nt("tlv")])],
+        "tlv" => [exp_ec([nt("type"), nt("len"), nt("value")], len_encode_callbackfn),],
+        "type" => [exp([t_bytes(4)])],
+        "len" => [exp([t_bytes(4)])],
+        "value" => [
+            exp([nt("tlv")]),
+            exp_dc([t_dyn()], len_decode_callbackfn)
         ],
     };
     Language::new(&grammar, "start", HashSet::new())
@@ -89,24 +89,24 @@ pub fn len_encode_callbackfn(node: Arc<DerivationTree>) -> Arc<DerivationTree> {
 /// Generate an ASN.1 TLV grammar.
 pub fn asn1_tlv_lang() -> Language {
     let grammar = grammar!(
-        "asn1-tlv" => vec![
+        "asn1-tlv" => [
             exp_ec(
-                vec![nt("asn1-tlv-type"),nt("asn1-tlv-len"),nt("asn1-tlv-value")],
+                [nt("asn1-tlv-type"),nt("asn1-tlv-len"),nt("asn1-tlv-value")],
                 len_encode_callbackfn
             ),
         ],
-        "asn1-tlv-type" => vec![
-            exp(vec![t_bytes_val(&[0x02])]),  // Type: Integer
-            exp(vec![t_bytes_val(&[0x04])]),  // Type: Octet String
-            exp(vec![t_bytes_val(&[0x05])]),  // Type: Null
-            exp(vec![t_bytes_val(&[0x06])]),  // Type: Object Identifier
-            exp(vec![t_bytes_val(&[0x43])]),  // Type: Timeticks
+        "asn1-tlv-type" => [
+            exp([t_bytes_val(&[0x02])]),  // Type: Integer
+            exp([t_bytes_val(&[0x04])]),  // Type: Octet String
+            exp([t_bytes_val(&[0x05])]),  // Type: Null
+            exp([t_bytes_val(&[0x06])]),  // Type: Object Identifier
+            exp([t_bytes_val(&[0x43])]),  // Type: Timeticks
         ],
-        "asn1-tlv-len" => vec![
-            exp(vec![t_ber()])
+        "asn1-tlv-len" => [
+            exp([t_ber()])
         ],
-        "asn1-tlv-value" => vec![
-            exp_dc(vec![t_dyn()], asn1_tlv_len_decode_callbackfn)
+        "asn1-tlv-value" => [
+            exp_dc([t_dyn()], asn1_tlv_len_decode_callbackfn)
         ],
     );
     Language::new(&grammar, "asn1-tlv", HashSet::new())

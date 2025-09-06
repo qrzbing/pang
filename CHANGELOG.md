@@ -1,5 +1,15 @@
 # Change Log
 
+## 0.1.5
+
+### Features
+
+- `Grammar` can be described more clearly.
+
+### Beaking Changes
+
+- Now `Language` accepts `&Grammar`.
+
 ## 0.1.4 - 2025-09-04
 
 ### Features

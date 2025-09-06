@@ -28,7 +28,7 @@ pub fn srange(chars: &str) -> Vec<Expansion> {
         // let bytes = c.encode_utf8(&mut buf).as_bytes();
 
         // Create an expansion that is just this single terminal.
-        let expansion = exp(vec![t(&c.to_string())]);
+        let expansion = exp([t(&c.to_string())]);
 
         // Add this expansion as one of the possible choices.
         expansions.push(expansion);
@@ -49,29 +49,29 @@ pub fn srange(chars: &str) -> Vec<Expansion> {
 /// ```
 pub fn expr_lang() -> Language {
     let grammar = grammar! {
-        "start" => vec![
-            exp(vec![nt("expr")])
+        "start" => [
+            exp([nt("expr")])
         ],
-        "expr" => vec![
-            exp(vec![nt("term"), t("+"), nt("expr")]),
-            exp(vec![nt("term"), t("-"), nt("expr")]),
-            exp(vec![nt("term")]),
+        "expr" => [
+            exp([nt("term"), t("+"), nt("expr")]),
+            exp([nt("term"), t("-"), nt("expr")]),
+            exp([nt("term")]),
         ],
-        "term" => vec![
-            exp(vec![nt("factor"), t("*"), nt("term")]),
-            exp(vec![nt("factor"), t("/"), nt("term")]),
-            exp(vec![nt("factor")]),
+        "term" => [
+            exp([nt("factor"), t("*"), nt("term")]),
+            exp([nt("factor"), t("/"), nt("term")]),
+            exp([nt("factor")]),
         ],
-        "factor" => vec![
-            exp(vec![t("+"), nt("factor")]),
-            exp(vec![t("-"), nt("factor")]),
-            exp(vec![t("("), nt("expr"), t(")")]),
-            exp(vec![nt("integer"), t("."), nt("integer")]),
-            exp(vec![nt("integer")]),
+        "factor" => [
+            exp([t("+"), nt("factor")]),
+            exp([t("-"), nt("factor")]),
+            exp([t("("), nt("expr"), t(")")]),
+            exp([nt("integer"), t("."), nt("integer")]),
+            exp([nt("integer")]),
         ],
-        "integer" => vec![
-            exp(vec![nt("digit"), nt("integer")]),
-            exp(vec![nt("digit")])
+        "integer" => [
+            exp([nt("digit"), nt("integer")]),
+            exp([nt("digit")])
         ],
         "digit" => srange(DIGITS)
     };
@@ -82,14 +82,14 @@ pub fn expr_lang() -> Language {
 /// A simple language.
 pub fn c_sample_lang() -> Language {
     let grammar = grammar! {
-        "start" => vec![exp(vec![nt("A"), nt("B")])],
-        "A" => vec![
-            exp(vec![t("a"), nt("B"), t("c")]),
-            exp(vec![nt("A"), nt("B")])
+        "start" => [exp([nt("A"), nt("B")])],
+        "A" => [
+            exp([t("a"), nt("B"), t("c")]),
+            exp([nt("A"), nt("B")])
         ],
-        "B" => vec![exp(vec![t("b"), nt("C")]), exp(vec![nt("D")])],
-        "C" => vec![exp(vec![t("c")])],
-        "D" => vec![exp(vec![t("d")])]
+        "B" => [exp([t("b"), nt("C")]), exp([nt("D")])],
+        "C" => [exp([t("c")])],
+        "D" => [exp([t("d")])]
     };
 
     Language::new(&grammar, "start", HashSet::new())
