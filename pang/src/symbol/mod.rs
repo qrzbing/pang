@@ -2,6 +2,7 @@
 
 use std::{
     any::Any,
+    borrow::Cow,
     collections::HashMap,
     fmt::{self, Debug},
     hash::{Hash, Hasher},
@@ -13,11 +14,11 @@ use serde::{Deserialize, Serialize};
 pub mod terminals;
 pub use terminals::{
     TerminalKind,
-    ber_length::{BerLengthTerminal, t_ber, t_ber_val},
-    bits::{BitsTerminal, t_bis_val, t_bits},
-    bytes::{BytesTerminal, t_bytes, t_bytes_val},
-    dynamic::{DynamicTerminal, t_dyn, t_dyn_val},
-    literal::{LiteralTerminal, t},
+    ber_length::{BerLengthTerminal, t_ber, t_ber_val, tl_ber, tl_ber_val},
+    bits::{BitsTerminal, t_bits, t_bits_val},
+    bytes::{BytesTerminal, t_bytes, t_bytes_val, tl_bytes, tl_bytes_val},
+    dynamic::{DynamicTerminal, t_dyn, t_dyn_val, tl_dyn, tl_dyn_val},
+    literal::{LiteralTerminal, t, tl},
 };
 pub mod traits;
 pub use traits::HasLength;
@@ -28,7 +29,7 @@ pub enum DecodeError {
     /// Incomplete data
     Incomplete(&'static str),
     /// Invalid data format
-    Invalid(&'static str),
+    Invalid(Cow<'static, str>),
 }
 
 impl fmt::Display for DecodeError {
@@ -83,12 +84,14 @@ pub type DecodeResult<'a, T> = Result<(&'a [u8], T), DecodeError>;
 pub enum Symbol {
     /// Terminal can not be expanded.
     Terminal {
+        /// Name of the terminal.
+        label: Option<String>,
         /// Terminal points to a TerminalKind.
         kind: Arc<dyn TerminalKind>,
     },
     /// NonTerminal can be expanded by other symbols.
     NonTerminal {
-        /// NonTerminal has a label as its name.
+        /// Name of the non-terminal.
         label: String,
     },
 }
@@ -117,8 +120,12 @@ impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Symbol::NonTerminal { label } => write!(f, "<{}>", label),
-            Symbol::Terminal { kind } => {
-                write!(f, "{}", kind.display_terminal())
+            Symbol::Terminal { label, kind } => {
+                if let Some(label) = label {
+                    write!(f, "{}", label)
+                } else {
+                    write!(f, "{}", kind.display_terminal())
+                }
             }
         }
     }
@@ -134,9 +141,16 @@ impl PartialEq for Symbol {
             ) => self_label == other_label,
 
             // Compare terminal
-            (Symbol::Terminal { kind: self_kind }, Symbol::Terminal { kind: other_kind }) => {
-                self_kind.eq_dyn(other_kind.as_ref())
-            }
+            (
+                Symbol::Terminal {
+                    label: self_label,
+                    kind: self_kind,
+                },
+                Symbol::Terminal {
+                    label: other_label,
+                    kind: other_kind,
+                },
+            ) => self_label == other_label && self_kind.eq_dyn(other_kind.as_ref()),
 
             _ => false,
         }
@@ -148,8 +162,11 @@ impl Eq for Symbol {}
 impl Hash for Symbol {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
-            Symbol::Terminal { kind } => {
+            Symbol::Terminal { label, kind } => {
                 0.hash(state);
+                if let Some(label) = label {
+                    label.hash(state);
+                }
                 kind.hash_dyn(state);
             }
             Symbol::NonTerminal { label } => {

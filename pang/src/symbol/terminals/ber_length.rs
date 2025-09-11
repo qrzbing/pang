@@ -13,7 +13,7 @@
 //! let ber_symbol = t_ber();
 //! assert_eq!(ber_symbol.to_string(), "0");
 //!
-//! if let Symbol::Terminal { kind: ber_kind } = ber_symbol {
+//! if let Symbol::Terminal { label: _, kind: ber_kind } = ber_symbol {
 //!     let ber_len = ber_kind
 //!                    .as_has_length().unwrap()
 //!                    .as_length().unwrap();
@@ -49,7 +49,7 @@ use crate::{
         terminals::{DynRand, TerminalKind},
         traits::HasLength,
     },
-    tree::{DerivationTree, new_node},
+    tree::DerivationTree,
 };
 
 /// Convert a usize to a BER-encoded length field.
@@ -92,7 +92,7 @@ fn ber_to_usize(input: &[u8]) -> DecodeResult<'_, usize> {
         let num_len_bytes = (first_byte & 0x7F) as usize;
         if num_len_bytes == 0 {
             return Err(DecodeError::Invalid(
-                "Invalid BER long form: number of length bytes cannot be zero",
+                "Invalid BER long form: number of length bytes cannot be zero".into(),
             ));
         }
 
@@ -151,9 +151,9 @@ impl TerminalKind for BerLengthTerminal {
         Ok(usize_to_ber_bytes(self.value))
     }
 
-    fn generate(&self, rng: &mut dyn DynRand) -> Arc<DerivationTree> {
+    fn generate(&self, rng: &mut dyn DynRand) -> Arc<dyn TerminalKind> {
         let _new_size = rng.below_or_zero(0x7f);
-        new_node(t_ber(), Some(vec![]))
+        Arc::new(BerLengthTerminal::new())
     }
 
     fn parse<'a>(
@@ -204,6 +204,15 @@ impl HasLength for BerLengthTerminal {
 /// Create a BER Length Terminal.
 pub fn t_ber() -> Symbol {
     Symbol::Terminal {
+        label: None,
+        kind: Arc::new(BerLengthTerminal::new()),
+    }
+}
+
+/// Create a BER Length Terminal.
+pub fn tl_ber(label: &str) -> Symbol {
+    Symbol::Terminal {
+        label: Some(label.into()),
         kind: Arc::new(BerLengthTerminal::new()),
     }
 }
@@ -211,6 +220,15 @@ pub fn t_ber() -> Symbol {
 /// Create a BER Length Terminal with value.
 pub fn t_ber_val(value: usize) -> Symbol {
     Symbol::Terminal {
+        label: None,
+        kind: Arc::new(BerLengthTerminal::from_usize(value)),
+    }
+}
+
+/// Create a BER Length Terminal with value and label.
+pub fn tl_ber_val(label: &str, value: usize) -> Symbol {
+    Symbol::Terminal {
+        label: Some(label.into()),
         kind: Arc::new(BerLengthTerminal::from_usize(value)),
     }
 }

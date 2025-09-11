@@ -5,10 +5,9 @@ use std::sync::Arc;
 
 use crate::{exp_dc, exp_ec, grammar};
 
-use crate::tree::new_node;
 use crate::{
-    DerivationTree, Language, exp, nt, parser::callback::big_endian_bytes_to_usize,
-    symbol::DecodeError, t_ber, t_bytes, t_bytes_val, t_dyn,
+    DerivationTree, Language, exp, new_node, nt, parser::callback::big_endian_bytes_to_usize,
+    symbol::DecodeError, t_bytes_val, t_dyn, tl_ber, tl_bytes, tl_bytes_val,
 };
 
 /// Generate a TLV language.
@@ -16,10 +15,8 @@ pub fn tlv_lang() -> Language {
     let grammar = grammar! {
         "start" => [exp([nt("tlv")])],
         "tlv" => [
-            exp_ec([nt("type"), nt("len"), nt("value")], len_encode_callbackfn),
+            exp_ec([tl_bytes("type", 4), tl_bytes("len", 4), nt("value")], len_encode_callbackfn),
         ],
-        "type" => [exp([t_bytes(4)])],
-        "len" => [exp([t_bytes(4)])],
         "value" => [
             exp_dc([t_dyn()], len_decode_callbackfn)
         ],
@@ -31,9 +28,7 @@ pub fn tlv_lang() -> Language {
 pub fn nest_tlv_lang() -> Language {
     let grammar = grammar! {
         "start" => [exp([nt("tlv")])],
-        "tlv" => [exp_ec([nt("type"), nt("len"), nt("value")], len_encode_callbackfn),],
-        "type" => [exp([t_bytes(4)])],
-        "len" => [exp([t_bytes(4)])],
+        "tlv" => [exp_ec([tl_bytes("type", 4), tl_bytes("len", 4), nt("value")], len_encode_callbackfn),],
         "value" => [
             exp([nt("tlv")]),
             exp_dc([t_dyn()], len_decode_callbackfn)
@@ -48,7 +43,7 @@ pub fn len_decode_callbackfn<'a>(
     context: &BTreeMap<String, Arc<DerivationTree>>,
 ) -> Result<(&'a [u8], Vec<u8>), DecodeError> {
     let len_tree = context.get("len").ok_or(DecodeError::Invalid(
-        "Symbol not found in context for length calculation",
+        "Symbol not found in context for length calculation".into(),
     ))?;
     let len = big_endian_bytes_to_usize(&len_tree.to_bytes())?;
 
@@ -67,23 +62,14 @@ pub fn len_decode_callbackfn<'a>(
 /// An example Encode callback function for length.
 /// TODO: Performance optimization
 pub fn len_encode_callbackfn(node: Arc<DerivationTree>) -> Arc<DerivationTree> {
-    let Some(children) = &node.children else {
-        return node;
-    };
     let value_tree = node.at(&[2]).expect("Value not found!");
     let real_len = value_tree.to_bytes().len();
     let len_bytes = (real_len as u32).to_be_bytes();
     // Generate a new Symbol
-    let len_node_symbol = t_bytes_val(&len_bytes);
+    let len_node_symbol = tl_bytes_val("len", &len_bytes);
+    let node_res = node.replace_by_path(&[1], new_node(len_node_symbol, Some(vec![])));
 
-    let new_len_leaf_node = new_node(len_node_symbol, Some(vec![]));
-    let old_len_symbol = children[1].symbol.clone();
-    let new_len_subtree = new_node(old_len_symbol, Some(vec![new_len_leaf_node]));
-    let mut new_children = children.clone();
-
-    // Replace the old length subtree with the new one.
-    new_children[1] = new_len_subtree;
-    new_node(node.symbol.clone(), Some(new_children))
+    node_res.expect("Failed to replace length node!")
 }
 
 /// Generate an ASN.1 TLV grammar.
@@ -91,7 +77,7 @@ pub fn asn1_tlv_lang() -> Language {
     let grammar = grammar!(
         "asn1-tlv" => [
             exp_ec(
-                [nt("asn1-tlv-type"),nt("asn1-tlv-len"),nt("asn1-tlv-value")],
+                [nt("asn1-tlv-type"), tl_ber("asn1-tlv-len"), nt("asn1-tlv-value")],
                 len_encode_callbackfn
             ),
         ],
@@ -101,9 +87,6 @@ pub fn asn1_tlv_lang() -> Language {
             exp([t_bytes_val(&[0x05])]),  // Type: Null
             exp([t_bytes_val(&[0x06])]),  // Type: Object Identifier
             exp([t_bytes_val(&[0x43])]),  // Type: Timeticks
-        ],
-        "asn1-tlv-len" => [
-            exp([t_ber()])
         ],
         "asn1-tlv-value" => [
             exp_dc([t_dyn()], asn1_tlv_len_decode_callbackfn)
@@ -117,7 +100,7 @@ fn asn1_tlv_len_decode_callbackfn<'a>(
     context: &BTreeMap<String, Arc<DerivationTree>>,
 ) -> Result<(&'a [u8], Vec<u8>), DecodeError> {
     let len_tree = context.get("asn1-tlv-len").ok_or(DecodeError::Invalid(
-        "Symbol not found in context for length calculation",
+        "Symbol not found in context for length calculation".into(),
     ))?;
     let len = big_endian_bytes_to_usize(&len_tree.to_bytes())?;
 

@@ -10,7 +10,7 @@ use crate::{
         terminals::{DynRand, TerminalKind},
         traits::HasLength,
     },
-    tree::{DerivationTree, new_node},
+    tree::DerivationTree,
 };
 
 /// Bytes terminal.
@@ -53,10 +53,10 @@ impl TerminalKind for BytesTerminal {
         }
     }
 
-    fn generate(&self, rng: &mut dyn DynRand) -> Arc<DerivationTree> {
+    fn generate(&self, rng: &mut dyn DynRand) -> Arc<dyn TerminalKind> {
         let mut generate_bytes = vec![0u8; self.size];
         rng.fill_bytes(&mut generate_bytes);
-        new_node(t_bytes_val(&generate_bytes), Some(vec![]))
+        Arc::new(BytesTerminal::new_from_val(&generate_bytes))
     }
 
     fn parse<'a>(
@@ -132,16 +132,34 @@ impl HasLength for BytesTerminal {
     }
 }
 
-/// Create a Binary Bytes Terminal.
+/// Create a Binary Bytes Terminal without label.
 pub fn t_bytes(size: usize) -> Symbol {
     Symbol::Terminal {
+        label: None,
         kind: Arc::new(BytesTerminal::new_from_len(size)),
     }
 }
 
-/// Create a Binary Bytes Terminal from a byte slice.
+/// Create a Binary Bytes Terminal with label.
+pub fn tl_bytes(label: &str, size: usize) -> Symbol {
+    Symbol::Terminal {
+        label: Some(label.to_string()),
+        kind: Arc::new(BytesTerminal::new_from_len(size)),
+    }
+}
+
+/// Create a Binary Bytes Terminal from a byte slice without label.
 pub fn t_bytes_val(val: &[u8]) -> Symbol {
     Symbol::Terminal {
+        label: None,
+        kind: Arc::new(BytesTerminal::new_from_val(val)),
+    }
+}
+
+/// Create a Binary Bytes Terminal from a byte slice with label.
+pub fn tl_bytes_val(label: &str, val: &[u8]) -> Symbol {
+    Symbol::Terminal {
+        label: Some(label.to_string()),
         kind: Arc::new(BytesTerminal::new_from_val(val)),
     }
 }

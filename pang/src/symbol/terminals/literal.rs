@@ -14,7 +14,7 @@ use crate::{
         DecodeResult, SharedState, Symbol,
         terminals::{DynRand, TerminalKind},
     },
-    tree::{DerivationTree, new_node},
+    tree::DerivationTree,
 };
 
 ///
@@ -41,8 +41,8 @@ impl TerminalKind for LiteralTerminal {
         Ok(self.value.as_bytes().to_vec())
     }
 
-    fn generate(&self, _rng: &mut dyn DynRand) -> Arc<DerivationTree> {
-        new_node(t(&self.value), Some(vec![]))
+    fn generate(&self, _rng: &mut dyn DynRand) -> Arc<dyn TerminalKind> {
+        Arc::new(LiteralTerminal::new(self.value.clone()))
     }
 
     fn parse<'a>(
@@ -75,6 +75,15 @@ impl TerminalKind for LiteralTerminal {
 /// Create a Literal Terminal.
 pub fn t(value: &str) -> Symbol {
     Symbol::Terminal {
+        label: None,
+        kind: Arc::new(LiteralTerminal::new(value.to_string())),
+    }
+}
+
+/// Create a Literal Terminal with label.
+pub fn tl(label: &str, value: &str) -> Symbol {
+    Symbol::Terminal {
+        label: Some(label.to_string()),
         kind: Arc::new(LiteralTerminal::new(value.to_string())),
     }
 }

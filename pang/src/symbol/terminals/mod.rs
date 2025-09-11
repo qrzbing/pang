@@ -70,7 +70,7 @@ pub trait TerminalKind: Debug + Send + Sync {
     fn encode(&self) -> Result<Vec<u8>, String>;
 
     /// Generate a new value for the terminal.
-    fn generate(&self, rng: &mut dyn DynRand) -> Arc<DerivationTree>;
+    fn generate(&self, rng: &mut dyn DynRand) -> Arc<dyn TerminalKind>;
 
     /// Returns a `&dyn Any` reference to itself for downcasting
     fn as_any(&self) -> &dyn Any;

@@ -52,9 +52,9 @@ impl Symbol {
         match self {
             // Parse NonTerminal
             Symbol::NonTerminal { label } => {
-                let expansions = grammar
-                    .get(label)
-                    .ok_or(DecodeError::Invalid("Non-terminal not found in grammar"))?;
+                let expansions = grammar.get(label).ok_or(DecodeError::Invalid(
+                    "Non-terminal not found in grammar".into(),
+                ))?;
 
                 debug!(
                     "    NT '{}': Found {} expansion(s)",
@@ -89,14 +89,23 @@ impl Symbol {
                     "<-- SYMBOL PARSE FAILED (NT '{}'): No expansion matched.",
                     label
                 );
-                Err(DecodeError::Invalid("No expansion matched for NonTerminal"))
+                Err(DecodeError::Invalid(
+                    format!("No expansion matched for NT '{}'", label).into(),
+                ))
             }
             // Parse Terminal
-            Symbol::Terminal { kind } => {
+            Symbol::Terminal { label, kind } => {
                 let (remaining_input, new_kind) =
                     kind.parse(input, &SharedState::new(), context)?;
-                let new_symbol = Symbol::Terminal { kind: new_kind };
+                let new_symbol = Symbol::Terminal {
+                    label: label.clone(),
+                    kind: new_kind,
+                };
                 let node = new_node(new_symbol, Some(vec![]));
+                // Insert label into context if it exists.
+                if let Some(lbl) = label {
+                    context.insert(lbl.clone(), node.clone());
+                }
                 Ok((remaining_input, node))
             }
         }
@@ -138,7 +147,7 @@ impl Expansion {
             // The preprocessed data must be consumed entirely.
             if !rem_in_slice.is_empty() {
                 return Err(DecodeError::Invalid(
-                    "Expansion did not consume the entire slice from decode_callback",
+                    "Expansion did not consume the entire slice from decode_callback".into(),
                 ));
             }
             Ok((remaining_after_slice, children))

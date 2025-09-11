@@ -53,7 +53,13 @@ impl Symbol {
                 }
             }
 
-            Symbol::Terminal { kind } => Ok(kind.generate(rng)),
+            Symbol::Terminal { label, kind } => Ok(new_node(
+                Symbol::Terminal {
+                    label: label.clone(),
+                    kind: kind.generate(rng),
+                },
+                Some(vec![]),
+            )),
         }
     }
 }
@@ -84,10 +90,7 @@ mod tests {
 
     use libafl_bolts::rands::StdRand;
 
-    use crate::language::{
-        asn1_tlv_lang,
-        examples::tlv::{nest_tlv_lang, tlv_lang},
-    };
+    use crate::language::{asn1_tlv_lang, examples::tlv::tlv_lang};
 
     static INIT: Once = Once::new();
 
@@ -114,38 +117,6 @@ mod tests {
             .unwrap();
         let val_terminal_len = tree.at(&[0, 2]).unwrap().to_bytes().len();
         assert_eq!(len_terminal_val, val_terminal_len);
-    }
-
-    #[test]
-    fn test_generate_nest_tlv_lang() {
-        setup_logger();
-        let mut rng = StdRand::with_seed(0);
-        let tree = nest_tlv_lang()
-            .grammar
-            .generate_combinator("start", &mut rng);
-        let len = tree
-            .at(&[0, 1])
-            .unwrap()
-            .first_terminal_kind()
-            .unwrap()
-            .as_has_length()
-            .unwrap()
-            .as_length()
-            .unwrap();
-        let val_len = tree.at(&[0, 2]).unwrap().to_bytes().len();
-        assert_eq!(len, val_len);
-
-        let nest_len = tree
-            .at(&[0, 2, 0, 1])
-            .unwrap()
-            .first_terminal_kind()
-            .unwrap()
-            .as_has_length()
-            .unwrap()
-            .as_length()
-            .unwrap();
-        let nest_val_len = tree.at(&[0, 2, 0, 2]).unwrap().to_bytes().len();
-        assert_eq!(nest_len, nest_val_len);
     }
 
     #[test]

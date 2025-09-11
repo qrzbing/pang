@@ -9,7 +9,7 @@ use crate::{
         DecodeResult, SharedState, Symbol,
         terminals::{DynRand, TerminalKind},
     },
-    tree::{DerivationTree, new_node},
+    tree::DerivationTree,
 };
 
 /// DynamicTerminal.
@@ -52,16 +52,11 @@ impl TerminalKind for DynamicTerminal {
         }
     }
 
-    fn generate(&self, rng: &mut dyn DynRand) -> Arc<DerivationTree> {
+    fn generate(&self, rng: &mut dyn DynRand) -> Arc<dyn TerminalKind> {
         let size = rng.between(8, 16);
         let mut generate_bytes = vec![0u8; size];
         rng.fill_bytes(&mut generate_bytes);
-        new_node(
-            Symbol::Terminal {
-                kind: Arc::new(DynamicTerminal::from_bytes(&generate_bytes)),
-            },
-            Some(vec![]),
-        )
+        Arc::new(DynamicTerminal::from_bytes(&generate_bytes))
     }
 
     fn parse<'a>(
@@ -96,6 +91,15 @@ impl TerminalKind for DynamicTerminal {
 /// Return a new DynamicTerminal.
 pub fn t_dyn() -> Symbol {
     Symbol::Terminal {
+        label: None,
+        kind: Arc::new(DynamicTerminal::new()),
+    }
+}
+
+/// Return a new DynamicTerminal.
+pub fn tl_dyn(label: &str) -> Symbol {
+    Symbol::Terminal {
+        label: Some(label.into()),
         kind: Arc::new(DynamicTerminal::new()),
     }
 }
@@ -103,6 +107,15 @@ pub fn t_dyn() -> Symbol {
 /// Consume all the input and return DynamicTerminal.
 pub fn t_dyn_val(value: &[u8]) -> Symbol {
     Symbol::Terminal {
+        label: None,
+        kind: Arc::new(DynamicTerminal::from_bytes(value)),
+    }
+}
+
+/// Consume all the input and return DynamicTerminal.
+pub fn tl_dyn_val(label: &str, value: &[u8]) -> Symbol {
+    Symbol::Terminal {
+        label: Some(label.into()),
         kind: Arc::new(DynamicTerminal::from_bytes(value)),
     }
 }

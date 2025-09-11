@@ -93,7 +93,7 @@ impl DerivationTree {
             }
         }
         match &self.symbol {
-            Symbol::Terminal { kind } => kind.encode().expect(&format!(
+            Symbol::Terminal { label: _, kind } => kind.encode().expect(&format!(
                 "Terminal {} encode failed",
                 self.symbol.to_string()
             )),
@@ -348,7 +348,7 @@ impl DerivationTree {
     /// Return children first [`TerminalKind`]
     pub fn first_terminal_kind(&self) -> Option<Arc<dyn TerminalKind>> {
         match &self.symbol {
-            Symbol::Terminal { kind } => Some(kind.clone()),
+            Symbol::Terminal { label: _, kind } => Some(kind.clone()),
             Symbol::NonTerminal { .. } => {
                 if let Some(children) = &self.children {
                     // Search through children and return the first match found

@@ -5,6 +5,7 @@
 ### Features
 
 - `Grammar` can be described more clearly.
+- Add `label` and some helper functions to `Terminal`.
 
 ### Beaking Changes
 

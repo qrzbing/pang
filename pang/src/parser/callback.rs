@@ -11,13 +11,13 @@ pub fn little_endian_bytes_to_usize(bytes: &[u8]) -> Result<usize, DecodeError> 
     // FIXME: This is a hack to support u32 only.
     if bytes.len() > 8 {
         return Err(DecodeError::Invalid(
-            "Input slice cannot be larger than 4 bytes for this conversion",
+            "Input slice cannot be larger than 4 bytes for this conversion".into(),
         ));
     }
 
     if bytes.len() > SIZE_OF_USIZE {
         return Err(DecodeError::Invalid(
-            "Terminal value is too large to fit in usize",
+            "Terminal value is too large to fit in usize".into(),
         ));
     }
 
@@ -35,12 +35,12 @@ pub fn big_endian_bytes_to_usize(bytes: &[u8]) -> Result<usize, DecodeError> {
     // FIXME: This is a hack to support u32 only.
     if bytes.len() > 4 {
         return Err(DecodeError::Invalid(
-            "Input slice cannot be larger than 4 bytes for this conversion",
+            "Input slice cannot be larger than 4 bytes for this conversion".into(),
         ));
     }
     if bytes.len() > SIZE_OF_USIZE {
         return Err(DecodeError::Invalid(
-            "Terminal value is too large to fit in usize",
+            "Terminal value is too large to fit in usize".into(),
         ));
     }
 

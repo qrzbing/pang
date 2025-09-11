@@ -9,7 +9,7 @@ use crate::{
         DecodeResult, SharedState, Symbol,
         terminals::{DynRand, TerminalKind},
     },
-    tree::{DerivationTree, new_node},
+    tree::DerivationTree,
 };
 
 /// Bits terminal, not fully implemented yet.
@@ -51,10 +51,11 @@ impl TerminalKind for BitsTerminal {
         }
     }
 
-    fn generate(&self, rng: &mut dyn DynRand) -> Arc<DerivationTree> {
+    fn generate(&self, rng: &mut dyn DynRand) -> Arc<dyn TerminalKind> {
         let mut generate_bytes = vec![0u8; self.size];
         rng.fill_bytes(&mut generate_bytes);
-        new_node(t_bits(self.size), Some(vec![]))
+        // FIXME: Will not work as expected.
+        Arc::new(BitsTerminal::new(self.size))
     }
 
     fn parse<'a>(
@@ -87,13 +88,31 @@ impl TerminalKind for BitsTerminal {
 /// Create a Binary Bits Terminal.
 pub fn t_bits(size: usize) -> Symbol {
     Symbol::Terminal {
+        label: None,
+        kind: Arc::new(BitsTerminal::new(size)),
+    }
+}
+
+/// Create a Binary Bits Terminal.
+pub fn tl_bits(label: &str, size: usize) -> Symbol {
+    Symbol::Terminal {
+        label: Some(label.to_string()),
         kind: Arc::new(BitsTerminal::new(size)),
     }
 }
 
 /// FIXME: Create a Binary Bits Terminal.
-pub fn t_bis_val(val: &[u8]) -> Symbol {
+pub fn t_bits_val(val: &[u8]) -> Symbol {
     Symbol::Terminal {
+        label: None,
+        kind: Arc::new(BitsTerminal::new_from_val(val)),
+    }
+}
+
+/// FIXME: Create a Binary Bits Terminal.
+pub fn tl_bits_val(label: &str, val: &[u8]) -> Symbol {
+    Symbol::Terminal {
+        label: Some(label.to_string()),
         kind: Arc::new(BitsTerminal::new_from_val(val)),
     }
 }
