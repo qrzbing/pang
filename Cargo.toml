@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "pang",
+    "pang", "pang_derive",
 ]
 resolver = "2"
 

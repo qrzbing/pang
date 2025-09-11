@@ -77,7 +77,7 @@ fn usize_to_ber_bytes(len: usize) -> Vec<u8> {
 }
 
 /// Decode a BER-encoded length to a `usize`.
-fn ber_to_usize(input: &[u8]) -> DecodeResult<usize> {
+fn ber_to_usize(input: &[u8]) -> DecodeResult<'_, usize> {
     if input.is_empty() {
         return Err(DecodeError::Incomplete("Input is empty"));
     }

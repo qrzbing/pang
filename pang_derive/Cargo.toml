@@ -1,0 +1,17 @@
+[package]
+name = "pang_derive"
+edition = "2024"
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+
+[lib]
+name = "pang_derive"
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = "1.0.99"
+clap = "4.5.47"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_yaml = "0.9.34"
