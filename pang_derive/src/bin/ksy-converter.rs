@@ -5,7 +5,7 @@ use anyhow::Result;
 use pang_derive::kaitai::convert;
 
 fn main() -> Result<()> {
-    // In a real app, you'd use a CLI parsing library like `clap`
+    env_logger::try_init().ok();
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 3 {
         eprintln!("Usage: {} <input.ksy> <output.rs>", args[0]);

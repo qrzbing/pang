@@ -35,7 +35,9 @@ pub enum DecodeError {
 impl fmt::Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DecodeError::Incomplete(msg) => write!(f, "Incomplete data: {}", msg),
+            DecodeError::Incomplete(msg) => {
+                write!(f, "Incomplete data: {}", msg)
+            }
             DecodeError::Invalid(msg) => write!(f, "Invalid data: {}", msg),
         }
     }

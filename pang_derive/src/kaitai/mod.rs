@@ -63,7 +63,6 @@ pub struct KsySpec {
 
 pub fn parse_ksy(ksy_content: &str) -> Result<KsySpec> {
     let spec: KsySpec = serde_yaml::from_str(ksy_content)?;
-    println!("spec: {:#?}", spec);
     Ok(spec)
 }
 
