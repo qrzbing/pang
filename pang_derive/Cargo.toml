@@ -5,6 +5,8 @@ version.workspace = true
 license.workspace = true
 repository.workspace = true
 readme.workspace = true
+authors = ["qrzbing <qrzbingfoxmail.com>"]
+description = "Useful tools for pang"
 
 [lib]
 name = "pang_derive"

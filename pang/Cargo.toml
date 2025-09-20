@@ -4,8 +4,8 @@ version.workspace = true
 edition = "2024"
 authors = ["qrzbing <qrzbingfoxmail.com>"]
 description = "A parser and generator generator."
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/qrzbing/pang"
+license.workspace = true
+repository.workspace = true
 
 [lib]
 name = "pang"
