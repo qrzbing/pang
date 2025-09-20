@@ -9,21 +9,53 @@ pub fn generate_rust_code(spec: &KsySpec) -> Result<String> {
     let mut extra_rules = Vec::new(); // Generated rules like switches
 
     // Main rule from meta.id
+    let main_seq_symbols: Vec<String> = spec
+        .seq
+        .iter()
+        .map(|item| format!("nt(\"{}\")", item.id))
+        .collect();
+
     let main_rule = format!(
-        "\"{}\" => [exp([nt(\"{}_seq\")])]",
-        spec.meta.id, spec.meta.id
+        "\"{}\" => [exp([{}])]",
+        spec.meta.id,
+        main_seq_symbols.join(", ")
     );
+
+    debug!("main rule {}", main_rule);
+
     grammar_rules.push(main_rule);
 
-    // Main sequence rule
-    let main_seq_expansions = generate_expansions_for_seq(&spec.seq, &mut extra_rules)?;
-    let main_seq_rule = format!("\"{}_seq\" => [{}]", spec.meta.id, main_seq_expansions);
-    grammar_rules.push(main_seq_rule);
+    // Create rules for each item in the top-level `seq`
+    for item in &spec.seq {
+        if item.repeat == Some(RepeatType::Eos) {
+            // This is the 'packets' case from pcap.ksy
+            let type_name = if let Some(KsyType::Simple(name)) = &item.type_def {
+                name
+            } else {
+                bail!("Item with repeat:eos must have a simple type.");
+            };
+            let rule = format!(
+                "\"{}\" => [exp([nt(\"{}\"), nt(\"{}\")]), exp([nt(\"{}\")]), exp([t_dyn()])]",
+                item.id, type_name, type_name, item.id
+            );
+            debug!("eos rule {}", rule);
+            grammar_rules.push(rule);
+        } else {
+            // This is the 'hdr' case from pcap.ksy
+            let type_name = if let Some(KsyType::Simple(name)) = &item.type_def {
+                name
+            } else {
+                bail!("Seq item must have a simple type");
+            };
+            let rule = format!("\"{}\" => [exp([nt(\"{}\")])]", item.id, type_name);
+            debug!("simple rule {}", rule);
+            grammar_rules.push(rule);
+        }
+    }
 
     // Rules from `types`
     for (type_name, type_def) in &spec.types {
         let expansions = generate_expansions_for_type(type_name, type_def, &mut extra_rules)?;
-        debug!("Generated rule for type '{}': {}", type_name, expansions);
         grammar_rules.push(format!("\"{}\" => [{}]", type_name, expansions));
     }
 
@@ -58,36 +90,14 @@ fn generate_expansions_for_type(
 }
 
 fn generate_expansions_for_seq(seq: &[SeqItem], extra_rules: &mut Vec<String>) -> Result<String> {
-    let mut has_eos_repeat = false;
     let symbols: Vec<String> = seq
         .iter()
-        .filter_map(|item| {
-            if item.repeat == Some(RepeatType::Eos) {
-                has_eos_repeat = true;
-                return None;
-            }
-            Some(map_item_to_symbol(item, extra_rules))
-        })
+        .map(|item| map_item_to_symbol(item, extra_rules))
         .collect();
 
-    let mut expansions = vec![format!("exp([{}])", symbols.join(", "))];
+    let expansion = format!("exp([{}])", symbols.join(", "));
 
-    if has_eos_repeat {
-        let repeating_item = seq
-            .iter()
-            .find(|i| i.repeat == Some(RepeatType::Eos))
-            .unwrap();
-        // Here we're making a specific assumption for the pcap `packets` case.
-        // A more robust solution would parse the item id.
-        let repeating_symbol = "nt(\"packet\")";
-        expansions = vec![
-            format!("exp([{}, nt(\"packets\")])", repeating_symbol),
-            format!("exp([{}])", repeating_symbol),
-            "exp([t_dyn()])".to_string(),
-        ];
-    }
-
-    Ok(expansions.join(", "))
+    Ok(expansion)
 }
 
 fn map_item_to_symbol(item: &SeqItem, extra_rules: &mut Vec<String>) -> String {
@@ -98,7 +108,6 @@ fn map_item_to_symbol(item: &SeqItem, extra_rules: &mut Vec<String>) -> String {
     }
 
     if let Some(type_def) = &item.type_def {
-        debug!("Current item: {:#?}", item);
         match type_def {
             KsyType::Simple(type_name) => {
                 return match type_name.as_str() {
