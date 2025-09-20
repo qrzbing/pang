@@ -1,6 +1,13 @@
 # Change Log
 
-## 0.1.5
+## 0.2.0 - 2025-09-20
+
+### Features
+
+- `pang_derive`, simple tools for pre-generate grammar.
+    - In 0.2.x, `pang_derive` will add kaitai support.
+
+## 0.1.5 - 2025-09-11
 
 ### Features
 
