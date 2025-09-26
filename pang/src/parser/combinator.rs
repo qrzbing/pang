@@ -38,12 +38,12 @@ impl Grammar {
 
 impl Symbol {
     /// Parse a Symbol.
-    pub fn parse<'a>(
+    pub fn parse<'a, 'i>(
         &'a self,
-        input: &'a [u8],
-        grammar: &'a Grammar,
+        input: &'i [u8],
+        grammar: &'i Grammar,
         context: &mut BTreeMap<String, Arc<DerivationTree>>,
-    ) -> DecodeResult<'a, Arc<DerivationTree>> {
+    ) -> DecodeResult<'i, Arc<DerivationTree>> {
         debug!(
             "--> SYMBOL PARSE: Trying to parse symbol: {:?}, input_len: {}",
             self,
@@ -93,6 +93,73 @@ impl Symbol {
                     format!("No expansion matched for NT '{}'", label).into(),
                 ))
             }
+            Symbol::ZeroOrMore { label } => {
+                let mut children = Vec::new();
+                let mut current_input = input;
+                let inner_symbol = nt(label);
+
+                loop {
+                    match inner_symbol.parse(current_input, grammar, &mut context.clone()) {
+                        Ok((next_input, child_node)) => {
+                            current_input = next_input;
+                            children.push(child_node);
+                        }
+                        Err(_) => {
+                            break;
+                        }
+                    }
+                }
+
+                let node = new_node(self.clone(), Some(children));
+                debug!(
+                    "<-- SYMBOL PARSE SUCCESS (ZeroOrMore '{}'), matched {} times, remaining_len: {}",
+                    label,
+                    node.children.as_ref().map_or(0, |c| c.len()),
+                    current_input.len()
+                );
+                Ok((current_input, node))
+            }
+            Symbol::OneOrMore { label } => {
+                let mut children = Vec::new();
+                let mut current_input = input;
+                let inner_symbol = nt(label);
+
+                // Must match at least once
+                match inner_symbol.parse(current_input, grammar, context) {
+                    Ok((next_input, child_node)) => {
+                        current_input = next_input;
+                        children.push(child_node);
+                    }
+                    Err(e) => {
+                        debug!(
+                            "<-- SYMBOL PARSE FAILED (OneOrMore '{}'): Did not match even once.",
+                            label
+                        );
+                        return Err(e);
+                    }
+                }
+
+                loop {
+                    match inner_symbol.parse(current_input, grammar, &mut context.clone()) {
+                        Ok((next_input, child_node)) => {
+                            current_input = next_input;
+                            children.push(child_node);
+                        }
+                        Err(_) => {
+                            break;
+                        }
+                    }
+                }
+
+                let node = new_node(self.clone(), Some(children));
+                debug!(
+                    "<-- SYMBOL PARSE SUCCESS (OneOrMore '{}'), matched {} times, remaining_len: {}",
+                    label,
+                    node.children.as_ref().map_or(0, |c| c.len()),
+                    current_input.len()
+                );
+                Ok((current_input, node))
+            }
             // Parse Terminal
             Symbol::Terminal { label, kind } => {
                 let (remaining_input, new_kind) =
@@ -114,19 +181,25 @@ impl Symbol {
 
 impl Expansion {
     /// Parse an Expansion, applying callback if it exists.
-    pub fn parse<'a>(
+    pub fn parse<'a, 'i>(
         &'a self,
-        input: &'a [u8],
-        grammar: &'a Grammar,
+        input: &'i [u8],
+        grammar: &'i Grammar,
         context: &mut BTreeMap<String, Arc<DerivationTree>>,
-    ) -> DecodeResult<'a, Vec<Arc<DerivationTree>>> {
+    ) -> DecodeResult<'i, Vec<Arc<DerivationTree>>>
+    where
+        'a: 'i,
+    {
         // Helper function to parse the sequence of symbols.
-        fn parse_symbols<'b>(
+        fn parse_symbols<'b, 'g>(
             input_slice: &'b [u8],
-            expansion: &'b Expansion,
-            grammar: &'b Grammar,
+            expansion: &'g Expansion,
+            grammar: &'g Grammar,
             context: &mut BTreeMap<String, Arc<DerivationTree>>,
-        ) -> DecodeResult<'b, Vec<Arc<DerivationTree>>> {
+        ) -> DecodeResult<'b, Vec<Arc<DerivationTree>>>
+        where
+            'g: 'b,
+        {
             let mut remaining_input = input_slice;
             let mut children = Vec::new();
             for symbol in &expansion.symbols {

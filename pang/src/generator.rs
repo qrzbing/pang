@@ -2,6 +2,8 @@
 
 use std::sync::Arc;
 
+use log::error;
+
 use crate::{
     grammar::{Expansion, Grammar},
     symbol::{Symbol, nt, terminals::DynRand},
@@ -52,7 +54,10 @@ impl Symbol {
                     Ok(node)
                 }
             }
-
+            Self::OneOrMore { label } | Self::ZeroOrMore { label } => {
+                error!("Generation for '{}' is not yet implemented", label);
+                todo!()
+            }
             Symbol::Terminal { label, kind } => Ok(new_node(
                 Symbol::Terminal {
                     label: label.clone(),

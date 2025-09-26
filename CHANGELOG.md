@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.2.1
+
+### Features
+
+- Add `OneOrMore` and `ZeroOrMore` Non-Terminals, user can use `nt_plus` and `nt_star` to create them.
+
 ## 0.2.0 - 2025-09-20
 
 ### Features

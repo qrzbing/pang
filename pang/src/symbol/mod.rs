@@ -96,6 +96,16 @@ pub enum Symbol {
         /// Name of the non-terminal.
         label: String,
     },
+    /// ZeroOrMore can be expanded zero or more times.
+    ZeroOrMore {
+        /// Name of the non-terminal.
+        label: String,
+    },
+    /// OneOrMore can be expanded one or more times.
+    OneOrMore {
+        /// Name of the non-terminal.
+        label: String,
+    },
 }
 
 impl Symbol {
@@ -129,6 +139,8 @@ impl fmt::Display for Symbol {
                     write!(f, "{}", kind.display_terminal())
                 }
             }
+            Symbol::ZeroOrMore { label } => write!(f, "<{}>*", label),
+            Symbol::OneOrMore { label } => write!(f, "<{}>+", label),
         }
     }
 }
@@ -141,7 +153,13 @@ impl PartialEq for Symbol {
                 Symbol::NonTerminal { label: self_label },
                 Symbol::NonTerminal { label: other_label },
             ) => self_label == other_label,
-
+            (
+                Symbol::ZeroOrMore { label: self_label },
+                Symbol::ZeroOrMore { label: other_label },
+            ) => self_label == other_label,
+            (Symbol::OneOrMore { label: self_label }, Symbol::OneOrMore { label: other_label }) => {
+                self_label == other_label
+            }
             // Compare terminal
             (
                 Symbol::Terminal {
@@ -171,7 +189,9 @@ impl Hash for Symbol {
                 }
                 kind.hash_dyn(state);
             }
-            Symbol::NonTerminal { label } => {
+            Symbol::NonTerminal { label }
+            | Symbol::OneOrMore { label }
+            | Symbol::ZeroOrMore { label } => {
                 1.hash(state);
                 label.hash(state);
             }
@@ -182,6 +202,20 @@ impl Hash for Symbol {
 /// Create a NonTerminal.
 pub fn nt(label: &str) -> Symbol {
     Symbol::NonTerminal {
+        label: label.to_string(),
+    }
+}
+
+/// Create a ZeroOrMore NonTerminal.
+pub fn nt_star(label: &str) -> Symbol {
+    Symbol::ZeroOrMore {
+        label: label.to_string(),
+    }
+}
+
+/// Create a OneOrMore NonTerminal.
+pub fn nt_plus(label: &str) -> Symbol {
+    Symbol::OneOrMore {
         label: label.to_string(),
     }
 }

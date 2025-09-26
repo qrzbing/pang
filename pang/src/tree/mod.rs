@@ -75,13 +75,15 @@ impl DerivationTree {
     pub fn all_terminals(&self) -> String {
         match &self.symbol {
             Symbol::Terminal { .. } => self.symbol.to_string(),
-            Symbol::NonTerminal { .. } => match &self.children {
-                Some(children) => children
-                    .iter()
-                    .map(|child_node| child_node.all_terminals())
-                    .collect(),
-                None => self.symbol.to_string(),
-            },
+            Symbol::NonTerminal { .. } | Symbol::OneOrMore { .. } | Symbol::ZeroOrMore { .. } => {
+                match &self.children {
+                    Some(children) => children
+                        .iter()
+                        .map(|child_node| child_node.all_terminals())
+                        .collect(),
+                    None => self.symbol.to_string(),
+                }
+            }
         }
     }
 
@@ -97,7 +99,9 @@ impl DerivationTree {
                 "Terminal {} encode failed",
                 self.symbol.to_string()
             )),
-            Symbol::NonTerminal { .. } => Vec::new(),
+            Symbol::NonTerminal { .. } | Symbol::OneOrMore { .. } | Symbol::ZeroOrMore { .. } => {
+                Vec::new()
+            }
         }
     }
 
@@ -110,7 +114,9 @@ impl DerivationTree {
         }
         match &self.symbol {
             Symbol::Terminal { .. } => self.symbol.to_string(),
-            Symbol::NonTerminal { .. } => String::new(),
+            Symbol::NonTerminal { .. } | Symbol::OneOrMore { .. } | Symbol::ZeroOrMore { .. } => {
+                String::new()
+            }
         }
     }
 
@@ -349,7 +355,7 @@ impl DerivationTree {
     pub fn first_terminal_kind(&self) -> Option<Arc<dyn TerminalKind>> {
         match &self.symbol {
             Symbol::Terminal { label: _, kind } => Some(kind.clone()),
-            Symbol::NonTerminal { .. } => {
+            Symbol::NonTerminal { .. } | Symbol::OneOrMore { .. } | Symbol::ZeroOrMore { .. } => {
                 if let Some(children) = &self.children {
                     // Search through children and return the first match found
                     children
