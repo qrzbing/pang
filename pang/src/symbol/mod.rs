@@ -11,15 +11,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+pub mod nonterminals;
+pub use nonterminals::*;
 pub mod terminals;
-pub use terminals::{
-    TerminalKind,
-    ber_length::{BerLengthTerminal, t_ber, t_ber_val, tl_ber, tl_ber_val},
-    bits::{BitsTerminal, t_bits, t_bits_val},
-    bytes::{BytesTerminal, t_bytes, t_bytes_val, tl_bytes, tl_bytes_val},
-    dynamic::{DynamicTerminal, t_dyn, t_dyn_val, tl_dyn, tl_dyn_val},
-    literal::{LiteralTerminal, t, tl},
-};
+pub use terminals::*;
 pub mod traits;
 pub use traits::HasLength;
 
@@ -93,18 +88,8 @@ pub enum Symbol {
     },
     /// NonTerminal can be expanded by other symbols.
     NonTerminal {
-        /// Name of the non-terminal.
-        label: String,
-    },
-    /// ZeroOrMore can be expanded zero or more times.
-    ZeroOrMore {
-        /// Name of the non-terminal.
-        label: String,
-    },
-    /// OneOrMore can be expanded one or more times.
-    OneOrMore {
-        /// Name of the non-terminal.
-        label: String,
+        /// NonTerminal Kind.
+        kind: Arc<dyn NonTerminalKind>,
     },
 }
 
@@ -117,7 +102,7 @@ impl Symbol {
     /// Get the label of a NonTerminal symbol.
     pub fn label(&self) -> &str {
         match self {
-            Symbol::NonTerminal { label } => label,
+            Symbol::NonTerminal { kind, .. } => kind.label(),
             _ => panic!("Cannot call .label() on a Terminal symbol"),
         }
     }
@@ -131,7 +116,7 @@ impl Symbol {
 impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Symbol::NonTerminal { label } => write!(f, "<{}>", label),
+            Symbol::NonTerminal { kind } => write!(f, "{}", kind.display()),
             Symbol::Terminal { label, kind } => {
                 if let Some(label) = label {
                     write!(f, "{}", label)
@@ -139,8 +124,6 @@ impl fmt::Display for Symbol {
                     write!(f, "{}", kind.display_terminal())
                 }
             }
-            Symbol::ZeroOrMore { label } => write!(f, "<{}>*", label),
-            Symbol::OneOrMore { label } => write!(f, "<{}>+", label),
         }
     }
 }
@@ -149,16 +132,8 @@ impl PartialEq for Symbol {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             // Compare non-terminal
-            (
-                Symbol::NonTerminal { label: self_label },
-                Symbol::NonTerminal { label: other_label },
-            ) => self_label == other_label,
-            (
-                Symbol::ZeroOrMore { label: self_label },
-                Symbol::ZeroOrMore { label: other_label },
-            ) => self_label == other_label,
-            (Symbol::OneOrMore { label: self_label }, Symbol::OneOrMore { label: other_label }) => {
-                self_label == other_label
+            (Symbol::NonTerminal { kind: self_kind }, Symbol::NonTerminal { kind: other_kind }) => {
+                self_kind.label() == other_kind.label()
             }
             // Compare terminal
             (
@@ -189,33 +164,10 @@ impl Hash for Symbol {
                 }
                 kind.hash_dyn(state);
             }
-            Symbol::NonTerminal { label }
-            | Symbol::OneOrMore { label }
-            | Symbol::ZeroOrMore { label } => {
+            Symbol::NonTerminal { kind } => {
                 1.hash(state);
-                label.hash(state);
+                kind.hash_dyn(state);
             }
         }
-    }
-}
-
-/// Create a NonTerminal.
-pub fn nt(label: &str) -> Symbol {
-    Symbol::NonTerminal {
-        label: label.to_string(),
-    }
-}
-
-/// Create a ZeroOrMore NonTerminal.
-pub fn nt_star(label: &str) -> Symbol {
-    Symbol::ZeroOrMore {
-        label: label.to_string(),
-    }
-}
-
-/// Create a OneOrMore NonTerminal.
-pub fn nt_plus(label: &str) -> Symbol {
-    Symbol::OneOrMore {
-        label: label.to_string(),
     }
 }

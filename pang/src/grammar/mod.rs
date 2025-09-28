@@ -132,11 +132,10 @@ impl Expansion {
         self.symbols
             .iter()
             .filter_map(|symbol| match symbol {
-                Symbol::NonTerminal { label }
-                | Symbol::OneOrMore { label }
-                | Symbol::ZeroOrMore { label } => Some(label.clone()),
+                Symbol::NonTerminal { kind } => Some(kind.label()),
                 _ => None,
             })
+            .map(|s| s.to_string())
             .collect()
     }
 }

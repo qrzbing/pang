@@ -75,15 +75,13 @@ impl DerivationTree {
     pub fn all_terminals(&self) -> String {
         match &self.symbol {
             Symbol::Terminal { .. } => self.symbol.to_string(),
-            Symbol::NonTerminal { .. } | Symbol::OneOrMore { .. } | Symbol::ZeroOrMore { .. } => {
-                match &self.children {
-                    Some(children) => children
-                        .iter()
-                        .map(|child_node| child_node.all_terminals())
-                        .collect(),
-                    None => self.symbol.to_string(),
-                }
-            }
+            Symbol::NonTerminal { .. } => match &self.children {
+                Some(children) => children
+                    .iter()
+                    .map(|child_node| child_node.all_terminals())
+                    .collect(),
+                None => self.symbol.to_string(),
+            },
         }
     }
 
@@ -99,9 +97,7 @@ impl DerivationTree {
                 "Terminal {} encode failed",
                 self.symbol.to_string()
             )),
-            Symbol::NonTerminal { .. } | Symbol::OneOrMore { .. } | Symbol::ZeroOrMore { .. } => {
-                Vec::new()
-            }
+            Symbol::NonTerminal { .. } => Vec::new(),
         }
     }
 
@@ -114,9 +110,7 @@ impl DerivationTree {
         }
         match &self.symbol {
             Symbol::Terminal { .. } => self.symbol.to_string(),
-            Symbol::NonTerminal { .. } | Symbol::OneOrMore { .. } | Symbol::ZeroOrMore { .. } => {
-                String::new()
-            }
+            Symbol::NonTerminal { .. } => String::new(),
         }
     }
 
@@ -355,7 +349,7 @@ impl DerivationTree {
     pub fn first_terminal_kind(&self) -> Option<Arc<dyn TerminalKind>> {
         match &self.symbol {
             Symbol::Terminal { label: _, kind } => Some(kind.clone()),
-            Symbol::NonTerminal { .. } | Symbol::OneOrMore { .. } | Symbol::ZeroOrMore { .. } => {
+            Symbol::NonTerminal { .. } => {
                 if let Some(children) = &self.children {
                     // Search through children and return the first match found
                     children
@@ -390,8 +384,9 @@ impl DerivationTree {
         };
 
         // Apply the encode callback for current node.
-        if let Symbol::NonTerminal { label } = &self.symbol {
-            if let (Some(expansions), Some(children)) = (grammar.get(label), &current_node.children)
+        if let Symbol::NonTerminal { kind } = &self.symbol {
+            if let (Some(expansions), Some(children)) =
+                (grammar.get(kind.label()), &current_node.children)
             {
                 // Find the matching expansion for the current node's structure.
                 for expansion in expansions {

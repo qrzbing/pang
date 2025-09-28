@@ -14,10 +14,15 @@ use crate::{
 };
 
 pub mod ber_length;
+pub use ber_length::*;
 pub mod bits;
+pub use bits::*;
 pub mod bytes;
+pub use bytes::*;
 pub mod dynamic;
+pub use dynamic::*;
 pub mod literal;
+pub use literal::*;
 
 /// A Rand trait compatible with libafl_bolts::Rand
 pub trait DynRand {

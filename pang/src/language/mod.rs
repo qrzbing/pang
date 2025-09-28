@@ -46,10 +46,8 @@ impl Language {
     pub fn is_excluded(&self, symbol: &Symbol) -> bool {
         match symbol {
             Symbol::Terminal { .. } => true,
-            Symbol::NonTerminal { label }
-            | Symbol::ZeroOrMore { label }
-            | Symbol::OneOrMore { label } => {
-                !self.grammar.contains_key(label) || self.tokens.contains(label)
+            Symbol::NonTerminal { kind } => {
+                !self.grammar.contains_key(kind.label()) || self.tokens.contains(kind.label())
             }
         }
     }

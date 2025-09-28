@@ -1,10 +1,14 @@
 # Change Log
 
-## 0.2.1
+## 0.2.1 - 2025-09-28
 
 ### Features
 
-- Add `OneOrMore` and `ZeroOrMore` Non-Terminals, user can use `nt_plus` and `nt_star` to create them.
+- Add `NOrMore` Non-Terminal, user can use `nomt` to create it.
+
+### Changed
+
+- Rewrite `Symbol::NonTerminal`, now users can define custom non-terminal through `NonTerminalKind` by themself.
 
 ## 0.2.0 - 2025-09-20
 

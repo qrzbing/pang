@@ -2,8 +2,6 @@
 
 use std::sync::Arc;
 
-use log::error;
-
 use crate::{
     grammar::{Expansion, Grammar},
     symbol::{Symbol, nt, terminals::DynRand},
@@ -33,31 +31,7 @@ impl Symbol {
         rng: &mut dyn DynRand,
     ) -> Result<Arc<DerivationTree>, String> {
         match self {
-            // 1. Expanse for NonTerminal
-            Symbol::NonTerminal { label } => {
-                let expansions = grammar
-                    .get(label)
-                    .ok_or_else(|| format!("Non-terminal '{}' not found in grammar", label))?;
-
-                if expansions.is_empty() {
-                    return Err(format!("No expansions available for '{}'", label));
-                }
-
-                let chosen_expansion = &expansions[rng.below_or_zero(expansions.len())];
-
-                let children = chosen_expansion.generate(grammar, rng)?;
-                let node = new_node(self.clone(), Some(children));
-
-                if let Some(callback) = chosen_expansion.encode_callback {
-                    Ok(callback(node))
-                } else {
-                    Ok(node)
-                }
-            }
-            Self::OneOrMore { label } | Self::ZeroOrMore { label } => {
-                error!("Generation for '{}' is not yet implemented", label);
-                todo!()
-            }
+            Symbol::NonTerminal { kind } => kind.generate(grammar, rng),
             Symbol::Terminal { label, kind } => Ok(new_node(
                 Symbol::Terminal {
                     label: label.clone(),
