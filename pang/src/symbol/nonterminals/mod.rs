@@ -11,7 +11,7 @@ use crate::{DecodeResult, DerivationTree, Grammar, terminals::DynRand};
 pub mod nonterminal;
 pub use nonterminal::nt;
 pub mod normore;
-pub use normore::nomt;
+pub use normore::nt_nom;
 
 /// NonTerminalKind can describe a non-terminal symbol.
 #[typetag::serde(tag = "type")]

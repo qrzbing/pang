@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.2.2
+
+### Changed
+
+- Rename `nomt` to `nt_nom`.
+
 ## 0.2.1 - 2025-09-28
 
 ### Features
