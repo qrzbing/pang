@@ -133,7 +133,7 @@ impl PartialEq for Symbol {
         match (self, other) {
             // Compare non-terminal
             (Symbol::NonTerminal { kind: self_kind }, Symbol::NonTerminal { kind: other_kind }) => {
-                self_kind.label() == other_kind.label()
+                self_kind.eq_dyn(&**other_kind)
             }
             // Compare terminal
             (
@@ -170,4 +170,20 @@ impl Hash for Symbol {
             }
         }
     }
+}
+
+/// Display byte slice as a string.
+#[inline]
+pub fn display_u8(inp: &[u8]) -> String {
+    inp.iter()
+        .map(|&byte| match byte {
+            b'\n' => "\\n".to_string(),
+            b'\r' => "\\r".to_string(),
+            b'\t' => "\\t".to_string(),
+
+            b if (b as char).is_ascii_graphic() => (b as char).to_string(),
+
+            _ => format!("\\x{:02x}", byte),
+        })
+        .collect()
 }

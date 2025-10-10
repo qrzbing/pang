@@ -5,6 +5,7 @@ use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    display_u8,
     symbol::{
         DecodeResult, SharedState, Symbol,
         terminals::{DynRand, TerminalKind},
@@ -41,7 +42,7 @@ impl DynamicTerminal {
 #[typetag::serde]
 impl TerminalKind for DynamicTerminal {
     fn display_terminal(&self) -> String {
-        format!("Dyn[{}]", self.length)
+        format!("Dyn[{}]: {}", self.length, display_u8(&self.value))
     }
 
     fn encode(&self) -> Result<Vec<u8>, String> {

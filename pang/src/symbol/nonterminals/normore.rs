@@ -106,7 +106,10 @@ impl NonTerminalKind for NOrMoreNonTerminal {
             }
         }
 
-        let node = new_node(nt_nom(&self.label, self.minimum_repeat_time), Some(children));
+        let node = new_node(
+            nt_nom(&self.label, self.minimum_repeat_time),
+            Some(children),
+        );
         debug!(
             "<-- SYMBOL PARSE SUCCESS (NOrMore '{}'), matched {} times, remaining_len: {}",
             self.label,
@@ -125,5 +128,17 @@ impl NonTerminalKind for NOrMoreNonTerminal {
 pub fn nt_nom(label: &str, minimum_repeat_time: u32) -> Symbol {
     Symbol::NonTerminal {
         kind: Arc::new(NOrMoreNonTerminal::new(label, minimum_repeat_time)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_n_or_more_non_terminal() {
+        let nt_sym = nt("line");
+        let nt_nom_sym = nt_nom("line", 2);
+        assert_ne!(nt_sym, nt_nom_sym);
     }
 }
