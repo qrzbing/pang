@@ -2,6 +2,11 @@
 
 ## 0.2.2
 
+### Beaking Changes
+
+- Remove `generate` trait from `TerminalKind` and `NonTerminalKind`.
+- Remove `as_has_length` trait from `TerminalKind`.
+
 ### Changed
 
 - Rename `nomt` to `nt_nom`.

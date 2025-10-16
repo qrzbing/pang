@@ -10,10 +10,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{
-        DecodeResult, SharedState, Symbol,
-        terminals::{DynRand, TerminalKind},
-    },
+    symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
     tree::DerivationTree,
 };
 
@@ -39,10 +36,6 @@ impl TerminalKind for LiteralTerminal {
 
     fn encode(&self) -> Result<Vec<u8>, String> {
         Ok(self.value.as_bytes().to_vec())
-    }
-
-    fn generate(&self, _rng: &mut dyn DynRand) -> Arc<dyn TerminalKind> {
-        Arc::new(LiteralTerminal::new(self.value.clone()))
     }
 
     fn parse<'a>(

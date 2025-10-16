@@ -8,7 +8,7 @@ use std::{
 use crate::{
     grammar::Grammar,
     parser::Region,
-    symbol::{DecodeError, Symbol, terminals::DynRand},
+    symbol::{DecodeError, Symbol},
     tree::DerivationTree,
 };
 
@@ -55,11 +55,6 @@ impl Language {
     /// Parse an input bytes slice to a derivation tree.
     pub fn parse<'a>(&'a self, input: &'a [u8]) -> Result<Arc<DerivationTree>, DecodeError> {
         self.grammar.parse_combinator(input, &self.start_symbol)
-    }
-
-    /// Generate random input based on [`Grammar`].
-    pub fn generate(&self, rng: &mut dyn DynRand) -> Arc<DerivationTree> {
-        self.grammar.generate_combinator(&self.start_symbol, rng)
     }
 
     /// TODO: Once input can not be fully parsed, collect its regions and return.

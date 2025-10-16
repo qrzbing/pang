@@ -6,7 +6,7 @@
 
 use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hasher, sync::Arc};
 
-use crate::{DecodeResult, DerivationTree, Grammar, terminals::DynRand};
+use crate::{DecodeResult, DerivationTree, Grammar};
 
 pub mod nonterminal;
 pub use nonterminal::nt;
@@ -21,13 +21,6 @@ pub trait NonTerminalKind: Debug + Send + Sync {
 
     /// Encode the non-terminal to a byte array.
     fn encode(&self) -> Result<Vec<u8>, String>;
-
-    /// Generate a new value for the non-terminal.
-    fn generate(
-        &self,
-        grammar: &Grammar,
-        rng: &mut dyn DynRand,
-    ) -> Result<Arc<DerivationTree>, String>;
 
     /// Returns a `&dyn Any` reference to itself for downcasting
     fn as_any(&self) -> &dyn Any;

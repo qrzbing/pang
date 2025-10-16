@@ -15,8 +15,6 @@ pub mod nonterminals;
 pub use nonterminals::*;
 pub mod terminals;
 pub use terminals::*;
-pub mod traits;
-pub use traits::HasLength;
 
 /// Decode error types.
 #[derive(Debug, PartialEq)]

@@ -6,10 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     display_u8,
-    symbol::{
-        DecodeResult, SharedState, Symbol,
-        terminals::{DynRand, TerminalKind},
-    },
+    symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
     tree::DerivationTree,
 };
 
@@ -51,13 +48,6 @@ impl TerminalKind for DynamicTerminal {
         } else {
             Ok(self.value[..self.length].to_vec())
         }
-    }
-
-    fn generate(&self, rng: &mut dyn DynRand) -> Arc<dyn TerminalKind> {
-        let size = rng.between(8, 16);
-        let mut generate_bytes = vec![0u8; size];
-        rng.fill_bytes(&mut generate_bytes);
-        Arc::new(DynamicTerminal::from_bytes(&generate_bytes))
     }
 
     fn parse<'a>(

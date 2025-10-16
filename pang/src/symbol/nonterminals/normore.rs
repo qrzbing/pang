@@ -5,10 +5,7 @@ use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 use log::debug;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    DecodeResult, DerivationTree, Grammar, NonTerminalKind, Symbol, new_node, nt,
-    terminals::DynRand,
-};
+use crate::{DecodeResult, DerivationTree, Grammar, NonTerminalKind, Symbol, new_node, nt};
 
 /// Bytes terminal.
 /// TODO: support big/little-endian.
@@ -35,14 +32,6 @@ impl NonTerminalKind for NOrMoreNonTerminal {
     }
 
     fn encode(&self) -> Result<Vec<u8>, String> {
-        todo!()
-    }
-
-    fn generate(
-        &self,
-        _grammar: &Grammar,
-        _rng: &mut dyn DynRand,
-    ) -> Result<Arc<DerivationTree>, String> {
         todo!()
     }
 

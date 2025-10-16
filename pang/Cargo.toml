@@ -17,7 +17,6 @@ log = { workspace = true }
 serde = { workspace = true, features = ["derive", "rc"] }
 serde_json = "1.0.140"
 typetag = "0.2.20"
-libafl_bolts = { workspace = true }
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--html-in-header", "katex-header.html" ]

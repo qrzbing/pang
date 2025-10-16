@@ -6,11 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     display_u8,
-    symbol::{
-        DecodeError, DecodeResult, SharedState, Symbol,
-        terminals::{DynRand, TerminalKind},
-        traits::HasLength,
-    },
+    symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind},
     tree::DerivationTree,
 };
 
@@ -58,12 +54,6 @@ impl TerminalKind for BytesTerminal {
         }
     }
 
-    fn generate(&self, rng: &mut dyn DynRand) -> Arc<dyn TerminalKind> {
-        let mut generate_bytes = vec![0u8; self.size];
-        rng.fill_bytes(&mut generate_bytes);
-        Arc::new(BytesTerminal::new_from_val(&generate_bytes))
-    }
-
     fn parse<'a>(
         &self,
         input: &'a [u8],
@@ -98,42 +88,6 @@ impl TerminalKind for BytesTerminal {
     fn hash_dyn(&self, state: &mut dyn Hasher) {
         state.write(b"BytesTerminal");
         state.write(&self.value);
-    }
-
-    fn as_has_length(&self) -> Option<&dyn HasLength> {
-        Some(self)
-    }
-}
-
-impl HasLength for BytesTerminal {
-    fn as_length(&self) -> Option<usize> {
-        if self.value.is_empty() {
-            return None;
-        }
-        let mut buf = [0u8; size_of::<usize>()];
-        let buf_len = buf.len();
-        let len = self.value.len().min(buf_len);
-        buf[buf_len - len..].copy_from_slice(&self.value[..len]);
-        Some(usize::from_be_bytes(buf))
-    }
-
-    fn from_length(&self, len: usize) -> Arc<dyn TerminalKind> {
-        // Convert the usize length back into a byte vector.
-        // The new BytesTerminal should have the same fixed size as the old one.
-        let mut len_bytes = len.to_be_bytes().to_vec();
-
-        // Ensure the byte vector matches the original terminal's fixed size.
-        if len_bytes.len() > self.size {
-            // If the length is too large for the field, take the least significant bytes.
-            len_bytes = len_bytes.split_off(len_bytes.len() - self.size);
-        } else {
-            // If it's smaller, pad with zeros at the beginning (for big-endian).
-            while len_bytes.len() < self.size {
-                len_bytes.insert(0, 0);
-            }
-        }
-
-        Arc::new(BytesTerminal::new_from_val(&len_bytes))
     }
 }
 

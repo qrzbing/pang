@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     DecodeError, DecodeResult, DerivationTree, Grammar, NonTerminalKind, Symbol, new_node,
-    terminals::DynRand,
 };
 
 /// Bytes terminal.
@@ -34,31 +33,6 @@ impl NonTerminalKind for NonTerminal {
 
     fn encode(&self) -> Result<Vec<u8>, String> {
         todo!()
-    }
-
-    fn generate(
-        &self,
-        grammar: &Grammar,
-        rng: &mut dyn DynRand,
-    ) -> Result<Arc<DerivationTree>, String> {
-        let expansions = grammar
-            .get(&self.label)
-            .ok_or_else(|| format!("Non-terminal '{}' not found in grammar", self.label))?;
-
-        if expansions.is_empty() {
-            return Err(format!("No expansions available for '{}'", self.label));
-        }
-
-        let chosen_expansion = &expansions[rng.below_or_zero(expansions.len())];
-
-        let children = chosen_expansion.generate(grammar, rng)?;
-        let node = new_node(nt(&self.label), Some(children));
-
-        if let Some(callback) = chosen_expansion.encode_callback {
-            Ok(callback(node))
-        } else {
-            Ok(node)
-        }
     }
 
     fn as_any(&self) -> &dyn Any {

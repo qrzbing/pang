@@ -6,21 +6,27 @@
 //!
 //! ```
 //! use std::collections::BTreeMap;
-//! use pang::{
-//!     grammar::Grammar,
-//!     symbol::{Symbol, t_ber},
-//! };
+//!
+//! use pang::{BerLengthTerminal, Grammar, Symbol, TerminalKind, t_ber};
+//!
 //! let ber_symbol = t_ber();
 //! assert_eq!(ber_symbol.to_string(), "0");
 //!
-//! if let Symbol::Terminal { label: _, kind: ber_kind } = ber_symbol {
+//! if let Symbol::Terminal {
+//!     label: _,
+//!     kind: ber_kind,
+//! } = ber_symbol
+//! {
 //!     let ber_len = ber_kind
-//!                    .as_has_length().unwrap()
-//!                    .as_length().unwrap();
+//!         .as_any()
+//!         .downcast_ref::<BerLengthTerminal>()
+//!         .unwrap()
+//!         .value();
 //!     assert_eq!(ber_len, 0);
-//!     let new_ber = ber_kind.as_has_length().unwrap().from_length(255);
-//!     assert_eq!(new_ber.encode(), Ok(vec![0x81, 0xff]));
 //! }
+//!
+//! let ber_terminal = BerLengthTerminal::from_usize(255);
+//! assert_eq!(ber_terminal.encode(), Ok(vec![0x81, 0xff]));
 //!
 //! let ber_symbol = t_ber();
 //! let grammar = Grammar::new();
@@ -32,10 +38,10 @@
 //! let ber_len = ber_kind
 //!     .first_terminal_kind()
 //!     .unwrap()
-//!     .as_has_length()
+//!     .as_any()
+//!     .downcast_ref::<BerLengthTerminal>()
 //!     .unwrap()
-//!     .as_length()
-//!     .unwrap();
+//!     .value();
 //! assert_eq!(ber_len, 65535);
 //! ```
 
@@ -44,11 +50,7 @@ use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{
-        DecodeError, DecodeResult, SharedState, Symbol,
-        terminals::{DynRand, TerminalKind},
-        traits::HasLength,
-    },
+    symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind},
     tree::DerivationTree,
 };
 
@@ -139,6 +141,11 @@ impl BerLengthTerminal {
     pub fn from_usize(value: usize) -> Self {
         Self { value }
     }
+
+    /// Return the value of the BerLengthTerminal.
+    pub fn value(&self) -> usize {
+        self.value
+    }
 }
 
 #[typetag::serde]
@@ -149,11 +156,6 @@ impl TerminalKind for BerLengthTerminal {
 
     fn encode(&self) -> Result<Vec<u8>, String> {
         Ok(usize_to_ber_bytes(self.value))
-    }
-
-    fn generate(&self, rng: &mut dyn DynRand) -> Arc<dyn TerminalKind> {
-        let _new_size = rng.below_or_zero(0x7f);
-        Arc::new(BerLengthTerminal::new())
     }
 
     fn parse<'a>(
@@ -184,20 +186,6 @@ impl TerminalKind for BerLengthTerminal {
     fn hash_dyn(&self, state: &mut dyn Hasher) {
         state.write(b"BerLengthTerminal");
         state.write(&self.value.to_be_bytes());
-    }
-
-    fn as_has_length(&self) -> Option<&dyn HasLength> {
-        Some(self)
-    }
-}
-
-impl HasLength for BerLengthTerminal {
-    fn as_length(&self) -> Option<usize> {
-        Some(self.value)
-    }
-
-    fn from_length(&self, len: usize) -> Arc<dyn TerminalKind> {
-        Arc::new(BerLengthTerminal::from_usize(len))
     }
 }
 

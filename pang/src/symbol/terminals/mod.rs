@@ -6,10 +6,8 @@
 
 use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hasher, sync::Arc};
 
-use libafl_bolts::rands::Rand;
-
 use crate::{
-    symbol::{DecodeResult, SharedState, traits::HasLength},
+    symbol::{DecodeResult, SharedState},
     tree::DerivationTree,
 };
 
@@ -24,47 +22,6 @@ pub use dynamic::*;
 pub mod literal;
 pub use literal::*;
 
-/// A Rand trait compatible with libafl_bolts::Rand
-pub trait DynRand {
-    /// Gets the next 64 bit value
-    fn next(&mut self) -> u64;
-    /// Fill given slice with random bytes
-    fn fill_bytes(&mut self, dest: &mut [u8]);
-    /// Gets a value below the given one or zero
-    fn below_or_zero(&mut self, n: usize) -> usize;
-    /// Gets a value between the given lower bound (inclusive) and upper bound (inclusive)
-    fn between(&mut self, lower_bound_incl: usize, upper_bound_incl: usize) -> usize;
-}
-
-impl<R: Rand> DynRand for R {
-    fn next(&mut self) -> u64 {
-        Rand::next(self)
-    }
-
-    fn fill_bytes(&mut self, dest: &mut [u8]) {
-        let mut left = dest;
-        while left.len() >= 8 {
-            let (l, r) = left.split_at_mut(8);
-            left = r;
-            let chunk: [u8; 8] = self.next().to_le_bytes();
-            l.copy_from_slice(&chunk);
-        }
-        let n = left.len();
-        if n > 0 {
-            let chunk: [u8; 8] = self.next().to_le_bytes();
-            left.copy_from_slice(&chunk[..n]);
-        }
-    }
-
-    fn below_or_zero(&mut self, n: usize) -> usize {
-        Rand::below_or_zero(self, n)
-    }
-
-    fn between(&mut self, lower_bound_incl: usize, upper_bound_incl: usize) -> usize {
-        Rand::between(self, lower_bound_incl, upper_bound_incl)
-    }
-}
-
 /// TerminalKind can describe a terminal symbol.
 #[typetag::serde(tag = "type")]
 pub trait TerminalKind: Debug + Send + Sync {
@@ -73,9 +30,6 @@ pub trait TerminalKind: Debug + Send + Sync {
 
     /// Encode the terminal to a byte array.
     fn encode(&self) -> Result<Vec<u8>, String>;
-
-    /// Generate a new value for the terminal.
-    fn generate(&self, rng: &mut dyn DynRand) -> Arc<dyn TerminalKind>;
 
     /// Returns a `&dyn Any` reference to itself for downcasting
     fn as_any(&self) -> &dyn Any;
@@ -93,10 +47,4 @@ pub trait TerminalKind: Debug + Send + Sync {
         state: &SharedState,
         context: &BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<dyn TerminalKind>>;
-
-    /// Convert a Terminal to a [`HasLength`] trait object.
-    /// By default, returns `None`.
-    fn as_has_length(&self) -> Option<&dyn HasLength> {
-        None
-    }
 }

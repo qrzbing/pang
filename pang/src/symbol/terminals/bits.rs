@@ -5,10 +5,7 @@ use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    symbol::{
-        DecodeResult, SharedState, Symbol,
-        terminals::{DynRand, TerminalKind},
-    },
+    symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
     tree::DerivationTree,
 };
 
@@ -49,13 +46,6 @@ impl TerminalKind for BitsTerminal {
         } else {
             Ok(self.value[..self.size].to_vec())
         }
-    }
-
-    fn generate(&self, rng: &mut dyn DynRand) -> Arc<dyn TerminalKind> {
-        let mut generate_bytes = vec![0u8; self.size];
-        rng.fill_bytes(&mut generate_bytes);
-        // FIXME: Will not work as expected.
-        Arc::new(BitsTerminal::new(self.size))
     }
 
     fn parse<'a>(

@@ -41,7 +41,6 @@ Welcome to `PANG`
     )
 )]
 
-mod generator;
 pub mod grammar;
 pub use grammar::*;
 pub mod language;
