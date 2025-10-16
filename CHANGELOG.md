@@ -1,6 +1,6 @@
 # Change Log
 
-## 0.2.2
+## 0.2.2 - 2025-10-16
 
 ### Beaking Changes
 
