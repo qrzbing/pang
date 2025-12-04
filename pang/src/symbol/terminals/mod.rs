@@ -4,12 +4,9 @@
 //!
 //! This module contains some exmaples of terminals.
 
-use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hasher, sync::Arc};
+use std::{any::Any, fmt::Debug, hash::Hasher, sync::Arc};
 
-use crate::{
-    symbol::{DecodeResult, SharedState},
-    tree::DerivationTree,
-};
+use crate::symbol::{DecodeResult, SharedState};
 
 pub mod ber_length;
 pub use ber_length::*;
@@ -45,6 +42,5 @@ pub trait TerminalKind: Debug + Send + Sync {
         &self,
         input: &'a [u8],
         state: &SharedState,
-        context: &BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<dyn TerminalKind>>;
 }

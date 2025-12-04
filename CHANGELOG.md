@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.2.3
+
+### Features
+
+- Add `Switch` Non-Terminal, which is used when a struct depends on previous type, like Ikev2 protocol.
+
 ## 0.2.2 - 2025-10-16
 
 ### Beaking Changes

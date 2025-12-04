@@ -1,13 +1,12 @@
 //! # DynamicTerminal
 
-use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
+use std::{any::Any, hash::Hasher, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
     display_u8,
     symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
-    tree::DerivationTree,
 };
 
 /// DynamicTerminal.
@@ -54,7 +53,6 @@ impl TerminalKind for DynamicTerminal {
         &self,
         input: &'a [u8],
         _state: &SharedState,
-        _context: &BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
         // In DynamicTerminal, we don't need to parse anything.
         // Consume all the input and return the terminal.

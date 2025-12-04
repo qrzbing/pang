@@ -4,14 +4,16 @@
 //!
 //! This module contains some exmaples of non terminals.
 
-use std::{any::Any, collections::BTreeMap, fmt::Debug, hash::Hasher, sync::Arc};
+use std::{any::Any, collections::HashMap, fmt::Debug, hash::Hasher, sync::Arc};
 
-use crate::{DecodeResult, DerivationTree, Grammar};
+use crate::{DecodeResult, DerivationTree, EnumMapping, Grammar, ParseState};
 
 pub mod nonterminal;
 pub use nonterminal::nt;
 pub mod normore;
 pub use normore::nt_nom;
+pub mod switch;
+pub use switch::nt_switch;
 
 /// NonTerminalKind can describe a non-terminal symbol.
 #[typetag::serde(tag = "type")]
@@ -34,11 +36,16 @@ pub trait NonTerminalKind: Debug + Send + Sync {
     /// Parse the terminal from input.
     fn parse<'a>(
         &self,
+        state: &mut ParseState,
         input: &'a [u8],
         grammar: &'a Grammar,
-        context: &mut BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<DerivationTree>>;
 
     /// Return the name of a non-terminal
     fn label(&self) -> &str;
+
+    /// Return NonTerminals referenced by this NonTerminal
+    fn references(&self, _enums: &HashMap<String, EnumMapping>) -> Vec<String> {
+        vec![self.label().to_string()]
+    }
 }

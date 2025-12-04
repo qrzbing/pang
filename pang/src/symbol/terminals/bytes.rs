@@ -1,13 +1,12 @@
 //! # BytesTerminal
 
-use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
+use std::{any::Any, hash::Hasher, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
     display_u8,
     symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind},
-    tree::DerivationTree,
 };
 
 /// Bytes terminal.
@@ -58,7 +57,6 @@ impl TerminalKind for BytesTerminal {
         &self,
         input: &'a [u8],
         _state: &SharedState,
-        _context: &BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
         assert_ne!(self.size, 0);
         if input.len() < self.size {

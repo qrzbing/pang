@@ -6,6 +6,7 @@ use std::sync::Arc;
 use log::debug;
 
 use crate::{
+    ParseState,
     grammar::{Expansion, Grammar},
     symbol::{DecodeError, DecodeResult, SharedState, Symbol, nt},
     tree::{DerivationTree, new_node},
@@ -13,15 +14,18 @@ use crate::{
 
 impl Grammar {
     /// Parse input string with given grammar using combinator parser.
+    #[allow(unused_variables)]
+    #[deprecated]
     pub fn parse_combinator<'a>(
         &'a self,
+        state: &mut ParseState,
         input: &'a [u8],
         start_symbol: &str,
     ) -> Result<Arc<DerivationTree>, DecodeError> {
         let start_node = nt(start_symbol);
-        let mut context = BTreeMap::new();
+        state.context = BTreeMap::new();
 
-        match start_node.parse(input, self, &mut context) {
+        match start_node.parse(state, input, self) {
             Ok((remaining, tree)) => {
                 if !remaining.is_empty() {
                     debug!(
@@ -38,11 +42,13 @@ impl Grammar {
 
 impl Symbol {
     /// Parse a Symbol.
+    #[allow(unused_variables)]
+    #[deprecated]
     pub fn parse<'a, 'i>(
         &'a self,
+        state: &mut ParseState,
         input: &'i [u8],
         grammar: &'i Grammar,
-        context: &mut BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'i, Arc<DerivationTree>> {
         debug!(
             "--> SYMBOL PARSE: Trying to parse symbol: {:?}, input_len: {}",
@@ -51,11 +57,10 @@ impl Symbol {
         );
         match self {
             // Parse NonTerminal
-            Symbol::NonTerminal { kind } => Ok(kind.parse(input, grammar, context)?),
+            Symbol::NonTerminal { kind } => Ok(kind.parse(state, input, grammar)?),
             // Parse Terminal
             Symbol::Terminal { label, kind } => {
-                let (remaining_input, new_kind) =
-                    kind.parse(input, &SharedState::new(), context)?;
+                let (remaining_input, new_kind) = kind.parse(input, &SharedState::new())?;
                 let new_symbol = Symbol::Terminal {
                     label: label.clone(),
                     kind: new_kind,
@@ -63,7 +68,7 @@ impl Symbol {
                 let node = new_node(new_symbol, Some(vec![]));
                 // Insert label into context if it exists.
                 if let Some(lbl) = label {
-                    context.insert(lbl.clone(), node.clone());
+                    state.context.insert(lbl.clone(), node.clone());
                 }
                 Ok((remaining_input, node))
             }
@@ -73,21 +78,22 @@ impl Symbol {
 
 impl Expansion {
     /// Parse an Expansion, applying callback if it exists.
+    #[deprecated]
     pub fn parse<'a, 'i>(
         &'a self,
+        state: &mut ParseState,
         input: &'i [u8],
         grammar: &'i Grammar,
-        context: &mut BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'i, Vec<Arc<DerivationTree>>>
     where
         'a: 'i,
     {
         // Helper function to parse the sequence of symbols.
         fn parse_symbols<'b, 'g>(
+            state: &mut ParseState,
             input_slice: &'b [u8],
             expansion: &'g Expansion,
             grammar: &'g Grammar,
-            context: &mut BTreeMap<String, Arc<DerivationTree>>,
         ) -> DecodeResult<'b, Vec<Arc<DerivationTree>>>
         where
             'g: 'b,
@@ -95,7 +101,7 @@ impl Expansion {
             let mut remaining_input = input_slice;
             let mut children = Vec::new();
             for symbol in &expansion.symbols {
-                match symbol.parse(remaining_input, grammar, context) {
+                match symbol.parse(state, remaining_input, grammar) {
                     Ok((next_input, child_node)) => {
                         remaining_input = next_input;
                         children.push(child_node);
@@ -106,9 +112,9 @@ impl Expansion {
             Ok((remaining_input, children))
         }
         if let Some(callback) = self.decode_callback {
-            let (remaining_after_slice, data_for_expansion) = callback(input, context)?;
+            let (remaining_after_slice, data_for_expansion) = callback(input, &state.context)?;
             let (rem_in_slice, children) =
-                parse_symbols(&data_for_expansion, self, grammar, context)?;
+                parse_symbols(state, &data_for_expansion, self, grammar)?;
             // The preprocessed data must be consumed entirely.
             if !rem_in_slice.is_empty() {
                 return Err(DecodeError::Invalid(
@@ -118,7 +124,7 @@ impl Expansion {
             Ok((remaining_after_slice, children))
         } else {
             // Default behavior: parse the input directly.
-            parse_symbols(input, self, grammar, context)
+            parse_symbols(state, input, self, grammar)
         }
     }
 }
@@ -164,6 +170,7 @@ mod tests {
             0x00, 0x00, 0x00, 0x01, // nest-length
             0x01, // nest-value
         ];
+
         let tree = lang.parse(input).unwrap();
         assert_eq!(tree.to_bytes(), input);
 

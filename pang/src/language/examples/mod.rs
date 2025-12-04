@@ -1,6 +1,6 @@
 //! Some example languages.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::{
     grammar::{Expansion, exp},
@@ -76,7 +76,7 @@ pub fn expr_lang() -> Language {
         "digit" => srange(DIGITS)
     };
 
-    Language::new(&grammar, "start", HashSet::new())
+    Language::new(&grammar, "start", HashSet::new(), HashMap::new())
 }
 
 /// A simple language.
@@ -92,5 +92,5 @@ pub fn c_sample_lang() -> Language {
         "D" => [exp([t("d")])]
     };
 
-    Language::new(&grammar, "start", HashSet::new())
+    Language::new(&grammar, "start", HashSet::new(), HashMap::new())
 }

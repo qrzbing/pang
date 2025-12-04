@@ -12,11 +12,11 @@ use std::{
 use log::error;
 
 use crate::{
-    DerivationTree,
+    DerivationTree, EnumMapping,
     symbol::{DecodeError, Symbol},
 };
 
-pub mod macros;
+mod macros;
 
 /// Create a new Expansion with empty callbacks.
 pub fn exp<T: Into<Vec<Symbol>>>(symbols: T) -> Expansion {
@@ -122,20 +122,21 @@ impl Expansion {
     /// # Examples
     ///
     /// ```
+    /// use std::collections::HashMap;
+    ///
     /// use pang::{exp, nt, t};
     ///
     /// let expansion = exp([nt("expr"), t("+"), nt("term"), t("-"), nt("factor")]);
-    /// let result = expansion.nonterminals();
+    /// let result = expansion.nonterminals(&HashMap::new());
     /// assert_eq!(result, ["expr", "term", "factor"]);
     /// ```
-    pub fn nonterminals(&self) -> Vec<String> {
+    pub fn nonterminals(&self, enums: &HashMap<String, EnumMapping>) -> Vec<String> {
         self.symbols
             .iter()
-            .filter_map(|symbol| match symbol {
-                Symbol::NonTerminal { kind } => Some(kind.label()),
-                _ => None,
+            .flat_map(|symbol| match symbol {
+                Symbol::NonTerminal { kind } => kind.references(enums),
+                _ => Vec::new(),
             })
-            .map(|s| s.to_string())
             .collect()
     }
 }
@@ -242,9 +243,13 @@ impl Grammar {
     /// Examples
     ///
     /// ```
+    /// use std::collections::HashMap;
+    ///
     /// use pang::language::expr_lang;
     /// let grammar = expr_lang().grammar;
-    /// let (defined_nonterminals, used_nonterminals) = match grammar.def_used_nonterminals("start")
+    /// let (defined_nonterminals, used_nonterminals) = match grammar.def_used_nonterminals(
+    ///     "start", &HashMap::new()
+    /// )
     /// {
     ///     (Some(d), Some(u)) => (d, u),
     ///     _ => {
@@ -259,6 +264,7 @@ impl Grammar {
     pub fn def_used_nonterminals(
         &self,
         start_symbol: &str,
+        enums: &HashMap<String, EnumMapping>,
     ) -> (Option<HashSet<String>>, Option<HashSet<String>>) {
         let mut defined_nonterminals = HashSet::new();
         let mut used_nonterminals = HashSet::new();
@@ -272,7 +278,7 @@ impl Grammar {
             }
 
             for expansion in expansions {
-                used_nonterminals.extend(expansion.nonterminals());
+                used_nonterminals.extend(expansion.nonterminals(enums));
             }
         }
 
@@ -284,12 +290,18 @@ impl Grammar {
     /// # Examples
     ///
     /// ```
+    /// use std::collections::HashMap;
+    ///
     /// use pang::language::expr_lang;
     /// let grammar = expr_lang().grammar;
-    /// let reachable = grammar.reachable_nonterminals("start");
+    /// let reachable = grammar.reachable_nonterminals("start", &HashMap::new());
     /// assert_eq!(reachable.len(), 6);
     /// ```
-    pub fn reachable_nonterminals(&self, start_symbol: &str) -> HashSet<String> {
+    pub fn reachable_nonterminals(
+        &self,
+        start_symbol: &str,
+        enums: &HashMap<String, EnumMapping>,
+    ) -> HashSet<String> {
         let mut reachable = HashSet::new();
         let mut to_visit = vec![start_symbol.to_string()];
 
@@ -303,7 +315,7 @@ impl Grammar {
                 // ...iterate through all its possible expansions.
                 for expansion in expansions {
                     // Find all nonterminals in the current expansion.
-                    for nonterminal in expansion.nonterminals() {
+                    for nonterminal in expansion.nonterminals(enums) {
                         // Try to insert the nonterminal into the `reachable` set.
                         if reachable.insert(nonterminal.clone()) {
                             // If it's a newly discovered nonterminal,
@@ -323,15 +335,21 @@ impl Grammar {
     /// # Examples
     ///
     /// ```
+    /// use std::collections::HashMap;
+    ///
     /// use pang::language::expr_lang;
     /// let grammar = expr_lang().grammar;
-    /// let unreachable = grammar.unreachable_nonterminals("start");
+    /// let unreachable = grammar.unreachable_nonterminals("start", &HashMap::new());
     /// assert_eq!(unreachable.len(), 0);
     /// ```
-    pub fn unreachable_nonterminals(&self, start_symbol: &str) -> HashSet<String> {
+    pub fn unreachable_nonterminals(
+        &self,
+        start_symbol: &str,
+        enums: &HashMap<String, EnumMapping>,
+    ) -> HashSet<String> {
         let all_defined_nonterminals: HashSet<String> = self.keys().cloned().collect();
 
-        let reachable = self.reachable_nonterminals(start_symbol);
+        let reachable = self.reachable_nonterminals(start_symbol, enums);
         all_defined_nonterminals
             .difference(&reachable)
             .cloned()
@@ -343,30 +361,32 @@ impl Grammar {
     /// # Examples
     ///
     /// ```
+    /// use std::collections::HashMap;
+    ///
     /// use pang::{
     ///     grammar, exp, nt, t,
     ///     language::{expr_lang, xml_lang},
     /// };
     /// let grammar = expr_lang().grammar;
-    /// assert_eq!(grammar.is_valid("start"), true);
+    /// assert_eq!(grammar.is_valid("start", &HashMap::new()), true);
     ///
     /// let grammar = grammar! {
     ///     "start" => [exp([nt("x")])],
     ///     "y" => [exp([t("1")])]
     /// };
     ///
-    /// assert_eq!(grammar.is_valid("start"), false);
+    /// assert_eq!(grammar.is_valid("start", &HashMap::new()), false);
     ///
     /// let grammar = xml_lang().grammar;
     /// // let display_grammar = DisplayGrammar::new(&grammar);
     /// // println!("XML Grammar: {}", display_grammar);
-    /// assert_eq!(grammar.is_valid("start"), true);
+    /// assert_eq!(grammar.is_valid("start", &HashMap::new()), true);
     /// ```
-    pub fn is_valid(&self, start_symbol: &str) -> bool {
+    pub fn is_valid(&self, start_symbol: &str, enums: &HashMap<String, EnumMapping>) -> bool {
         let mut is_valid = true;
 
         let (defined_nonterminals, used_nonterminals) =
-            match self.def_used_nonterminals(start_symbol) {
+            match self.def_used_nonterminals(start_symbol, enums) {
                 (Some(d), Some(u)) => (d, u),
                 _ => return false,
             };
@@ -386,7 +406,7 @@ impl Grammar {
             is_valid = false;
         }
 
-        let unreachable = self.unreachable_nonterminals(start_symbol);
+        let unreachable = self.unreachable_nonterminals(start_symbol, enums);
 
         for unreachable_nonterminal in &unreachable {
             error!(
@@ -400,11 +420,11 @@ impl Grammar {
     }
 
     /// Trims a grammar by removing unused and unreachable nonterminals.
-    pub fn trim(&self, start_symbol: &str) -> Grammar {
+    pub fn trim(&self, start_symbol: &str, enums: &HashMap<String, EnumMapping>) -> Grammar {
         let mut new_grammar = self.extend_grammar(&Grammar::new());
 
         let (defined_nonterminals, used_nonterminals) =
-            match self.def_used_nonterminals(start_symbol) {
+            match self.def_used_nonterminals(start_symbol, enums) {
                 (Some(d), Some(u)) => (d, u),
                 _ => return new_grammar,
             };
@@ -414,7 +434,7 @@ impl Grammar {
             .cloned()
             .collect();
 
-        let unreachable = self.unreachable_nonterminals(start_symbol);
+        let unreachable = self.unreachable_nonterminals(start_symbol, enums);
 
         for nonterminal_to_remove in unused.union(&unreachable) {
             new_grammar.remove(nonterminal_to_remove);

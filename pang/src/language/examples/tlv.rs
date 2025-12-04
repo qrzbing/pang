@@ -1,6 +1,6 @@
 //! TLV Language Example
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::{exp_dc, exp_ec, grammar};
@@ -21,7 +21,7 @@ pub fn tlv_lang() -> Language {
             exp_dc([t_dyn()], len_decode_callbackfn)
         ],
     };
-    Language::new(&grammar, "start", HashSet::new())
+    Language::new(&grammar, "start", HashSet::new(), HashMap::new())
 }
 
 /// Generate a nested TLV grammar.
@@ -34,7 +34,7 @@ pub fn nest_tlv_lang() -> Language {
             exp_dc([t_dyn()], len_decode_callbackfn)
         ],
     };
-    Language::new(&grammar, "start", HashSet::new())
+    Language::new(&grammar, "start", HashSet::new(), HashMap::new())
 }
 
 /// An example Decode callback function for length.
@@ -92,7 +92,7 @@ pub fn asn1_tlv_lang() -> Language {
             exp_dc([t_dyn()], asn1_tlv_len_decode_callbackfn)
         ],
     );
-    Language::new(&grammar, "asn1-tlv", HashSet::new())
+    Language::new(&grammar, "asn1-tlv", HashSet::new(), HashMap::new())
 }
 
 fn asn1_tlv_len_decode_callbackfn<'a>(

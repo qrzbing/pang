@@ -6,6 +6,7 @@ use std::{
 };
 
 use crate::{
+    EnumMapping, ParseState,
     grammar::Grammar,
     parser::Region,
     symbol::{DecodeError, Symbol},
@@ -28,16 +29,25 @@ pub struct Language {
     /// A set of non-terminal labels that should be treated as opaque tokens.
     /// When pruning, the entire subtree for such a token will be replaced by its string value.
     pub tokens: HashSet<String>,
+    /// EnumMapping for SwitchNonTerminal
+    pub enums: Arc<HashMap<String, EnumMapping>>,
 }
 
 impl Language {
     /// Create a new Language.
-    pub fn new(grammar: &Grammar, start_symbol: &str, tokens: HashSet<String>) -> Self {
-        assert!(grammar.is_valid(start_symbol));
+    pub fn new(
+        grammar: &Grammar,
+        start_symbol: &str,
+        tokens: HashSet<String>,
+        enums: HashMap<String, EnumMapping>,
+    ) -> Self {
+        let enums = Arc::new(enums);
+        assert!(grammar.is_valid(start_symbol, &enums));
         Self {
             grammar: grammar.clone(),
             start_symbol: start_symbol.to_string(),
             tokens,
+            enums,
         }
     }
 
@@ -54,7 +64,10 @@ impl Language {
 
     /// Parse an input bytes slice to a derivation tree.
     pub fn parse<'a>(&'a self, input: &'a [u8]) -> Result<Arc<DerivationTree>, DecodeError> {
-        self.grammar.parse_combinator(input, &self.start_symbol)
+        let mut state = ParseState::new(self.enums.clone());
+
+        self.grammar
+            .parse_combinator(&mut state, input, &self.start_symbol)
     }
 
     /// TODO: Once input can not be fully parsed, collect its regions and return.

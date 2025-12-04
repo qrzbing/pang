@@ -1,6 +1,6 @@
 //! XML Language Example
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::{
     grammar::exp,
@@ -48,5 +48,5 @@ pub fn xml_lang() -> Language {
         "letter" => srange(&letter_chars),
         "letter_space" => srange(&letter_space_chars)
     };
-    Language::new(&grammar, "start", HashSet::new())
+    Language::new(&grammar, "start", HashSet::new(), HashMap::new())
 }

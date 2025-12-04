@@ -1,14 +1,15 @@
 //! N or More Non Terminal
 
-use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
+use std::{any::Any, hash::Hasher, sync::Arc};
 
 use log::debug;
 use serde::{Deserialize, Serialize};
 
-use crate::{DecodeResult, DerivationTree, Grammar, NonTerminalKind, Symbol, new_node, nt};
+use crate::{
+    DecodeResult, DerivationTree, Grammar, NonTerminalKind, ParseState, Symbol, new_node, nt,
+};
 
-/// Bytes terminal.
-/// TODO: support big/little-endian.
+/// NOrMore NonTerminal.
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
 pub struct NOrMoreNonTerminal {
     label: String,
@@ -54,9 +55,9 @@ impl NonTerminalKind for NOrMoreNonTerminal {
 
     fn parse<'a>(
         &self,
+        state: &mut ParseState,
         input: &'a [u8],
         grammar: &'a Grammar,
-        context: &mut BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<DerivationTree>> {
         let mut children = Vec::new();
         let mut current_input = input;
@@ -64,7 +65,7 @@ impl NonTerminalKind for NOrMoreNonTerminal {
 
         // Must match ar least `minimum_repeat_time` times
         for _ in 0..self.minimum_repeat_time {
-            match inner_symbol.parse(current_input, grammar, &mut context.clone()) {
+            match inner_symbol.parse(state, current_input, grammar) {
                 Ok((next_input, child_node)) => {
                     current_input = next_input;
                     children.push(child_node);
@@ -80,12 +81,17 @@ impl NonTerminalKind for NOrMoreNonTerminal {
         }
 
         loop {
-            match inner_symbol.parse(current_input, grammar, &mut context.clone()) {
+            let mut temp_state = state.clone();
+
+            match inner_symbol.parse(&mut temp_state, current_input, grammar) {
                 Ok((next_input, child_node)) => {
                     // Match 0 time, do not consume any input.
                     if next_input.len() == current_input.len() {
                         break;
                     }
+
+                    *state = temp_state;
+
                     current_input = next_input;
                     children.push(child_node);
                 }

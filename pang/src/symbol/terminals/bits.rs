@@ -1,13 +1,10 @@
 //! BitsTerminal
 
-use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
+use std::{any::Any, hash::Hasher, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
-    tree::DerivationTree,
-};
+use crate::symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind};
 
 /// Bits terminal, not fully implemented yet.
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
@@ -52,7 +49,6 @@ impl TerminalKind for BitsTerminal {
         &self,
         _input: &'a [u8],
         _state: &SharedState,
-        _context: &BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
         todo!("Implement it later.")
     }

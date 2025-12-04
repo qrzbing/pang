@@ -5,9 +5,9 @@
 //! ## Example
 //!
 //! ```
-//! use std::collections::BTreeMap;
+//! use std::{collections::{BTreeMap, HashMap}, sync::Arc};
 //!
-//! use pang::{BerLengthTerminal, Grammar, Symbol, TerminalKind, t_ber};
+//! use pang::{BerLengthTerminal, Grammar, Symbol, TerminalKind, t_ber, ParseState};
 //!
 //! let ber_symbol = t_ber();
 //! assert_eq!(ber_symbol.to_string(), "0");
@@ -30,9 +30,11 @@
 //!
 //! let ber_symbol = t_ber();
 //! let grammar = Grammar::new();
+//! let mut state = ParseState::new(Arc::new(HashMap::new()));
+//!
 //! let input = &[0x82, 0xff, 0xff];
 //! let (remaining_input, ber_kind) = ber_symbol
-//!     .parse(input, &grammar, &mut BTreeMap::new())
+//!     .parse(&mut state, input, &grammar)
 //!     .unwrap();
 //! assert_eq!(remaining_input, &[] as &[u8]);
 //! let ber_len = ber_kind
@@ -45,14 +47,11 @@
 //! assert_eq!(ber_len, 65535);
 //! ```
 
-use std::{any::Any, collections::BTreeMap, hash::Hasher, sync::Arc};
+use std::{any::Any, hash::Hasher, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind},
-    tree::DerivationTree,
-};
+use crate::symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind};
 
 /// Convert a usize to a BER-encoded length field.
 fn usize_to_ber_bytes(len: usize) -> Vec<u8> {
@@ -162,7 +161,6 @@ impl TerminalKind for BerLengthTerminal {
         &self,
         input: &'a [u8],
         _state: &SharedState,
-        _context: &BTreeMap<String, Arc<DerivationTree>>,
     ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
         let (remaining_input, value) = ber_to_usize(input)?;
         Ok((

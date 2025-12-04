@@ -9,6 +9,8 @@ use crate::{
     symbol::{Symbol, terminals::TerminalKind},
 };
 
+mod macros;
+
 /// DerivationTree is designed to represent for grammar,
 ///
 /// DerivationTree has a Symbol and its children.
@@ -39,6 +41,9 @@ impl DerivationTree {
         write!(f, "{}", prefix)?;
         write!(f, "{}", if is_last { "└── " } else { "├── " })?;
         write!(f, "{}", self.symbol.to_string())?;
+
+        // TODO: if terminal is too long, print it in one line.
+
         writeln!(f)?;
         let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
         if let Some(children) = &self.children {
