@@ -27,4 +27,4 @@ rustdoc-args = [ "--html-in-header", "katex-header.html" ]
 derive = ["dep:pang_derive"]
 
 [dev-dependencies]
-pang = { workspace = true, features = ["derive"] }
+pang = { path = ".", features = ["derive"] }
