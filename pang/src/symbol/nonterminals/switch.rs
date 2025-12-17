@@ -4,6 +4,7 @@ use std::{any::Any, collections::HashMap, hash::Hasher, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
+#[allow(deprecated)]
 use crate::{
     DecodeError, DecodeResult, EnumMapping, NonTerminalKind, ParseState, Symbol,
     callback::big_endian_bytes_to_usize, nt,
@@ -45,6 +46,7 @@ impl NonTerminalKind for SwitchNonTerminal {
         state.write(&self.dep_name.as_bytes());
     }
 
+    #[allow(deprecated)]
     fn parse<'a>(
         &self,
         state: &mut ParseState,

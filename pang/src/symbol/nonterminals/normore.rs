@@ -5,6 +5,7 @@ use std::{any::Any, hash::Hasher, sync::Arc};
 use log::debug;
 use serde::{Deserialize, Serialize};
 
+#[allow(deprecated)]
 use crate::{
     DecodeResult, DerivationTree, Grammar, NonTerminalKind, ParseState, Symbol, new_node, nt,
 };
@@ -53,6 +54,7 @@ impl NonTerminalKind for NOrMoreNonTerminal {
         state.write(&self.label.as_bytes());
     }
 
+    #[allow(deprecated)]
     fn parse<'a>(
         &self,
         state: &mut ParseState,

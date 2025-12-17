@@ -17,12 +17,14 @@ pub enum EnumMapping {
 /// Global Parse State
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
+#[deprecated(since="0.2.3", note="Use Struct instead")]
 pub struct ParseState {
     /// Context, which is mutable
     pub context: BTreeMap<String, Arc<DerivationTree>>,
     enums: Arc<HashMap<String, EnumMapping>>,
 }
 
+#[allow(deprecated)]
 impl ParseState {
     /// Create a ParseState
     pub fn new(enums: Arc<HashMap<String, EnumMapping>>) -> Self {

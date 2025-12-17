@@ -6,6 +6,7 @@
 
 use std::{any::Any, collections::HashMap, fmt::Debug, hash::Hasher, sync::Arc};
 
+#[allow(deprecated)]
 use crate::{DecodeResult, DerivationTree, EnumMapping, Grammar, ParseState};
 
 pub mod nonterminal;
@@ -34,6 +35,8 @@ pub trait NonTerminalKind: Debug + Send + Sync {
     fn hash_dyn(&self, state: &mut dyn Hasher);
 
     /// Parse the terminal from input.
+    #[deprecated(since="0.3.0", note="Parse methods are abandoned")]
+    #[allow(deprecated)]
     fn parse<'a>(
         &self,
         state: &mut ParseState,

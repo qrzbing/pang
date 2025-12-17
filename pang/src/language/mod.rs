@@ -5,6 +5,7 @@ use std::{
     sync::Arc,
 };
 
+#[allow(deprecated)]
 use crate::{
     EnumMapping, ParseState,
     grammar::Grammar,
@@ -63,6 +64,7 @@ impl Language {
     }
 
     /// Parse an input bytes slice to a derivation tree.
+    #[allow(deprecated)]
     pub fn parse<'a>(&'a self, input: &'a [u8]) -> Result<Arc<DerivationTree>, DecodeError> {
         let mut state = ParseState::new(self.enums.clone());
 

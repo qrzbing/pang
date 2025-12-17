@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use log::debug;
 
+#[allow(deprecated)]
 use crate::{
     ParseState,
     grammar::{Expansion, Grammar},
@@ -16,6 +17,7 @@ impl Grammar {
     /// Parse input string with given grammar using combinator parser.
     #[allow(unused_variables)]
     #[deprecated]
+    #[allow(deprecated)]
     pub fn parse_combinator<'a>(
         &'a self,
         state: &mut ParseState,
@@ -44,6 +46,7 @@ impl Symbol {
     /// Parse a Symbol.
     #[allow(unused_variables)]
     #[deprecated]
+    #[allow(deprecated)]
     pub fn parse<'a, 'i>(
         &'a self,
         state: &mut ParseState,
@@ -79,6 +82,7 @@ impl Symbol {
 impl Expansion {
     /// Parse an Expansion, applying callback if it exists.
     #[deprecated]
+    #[allow(deprecated)]
     pub fn parse<'a, 'i>(
         &'a self,
         state: &mut ParseState,

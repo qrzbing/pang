@@ -1,10 +1,18 @@
 # Change Log
 
-## 0.2.3
+## 0.2.3 - 2025-12-17
+
+### Beaking Changes
+
+- All `parse` methods in Lang/Grammar/... are deprecated, and will be removed in 0.3.0.
 
 ### Features
 
 - Add `Switch` Non-Terminal, which is used when a struct depends on previous type, like Ikev2 protocol.
+- Add pang_derive, which supports three derives: `PangLabel`, `ToTree` and `ToGrammar`. Now user is no need to write Grammar on their own.
+    - `PangLabel` is used to get the name of a Struct.
+    - `ToTree` can convert a struct with value to Derivation Tree.
+    - `ToGrammar` generate Grammmar for a Struct.
 
 ## 0.2.2 - 2025-10-16
 

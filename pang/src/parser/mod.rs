@@ -5,6 +5,7 @@ use std::hash::{Hash, Hasher};
 pub mod callback;
 mod combinator;
 pub mod state;
+#[allow(deprecated)]
 pub use state::{EnumMapping, ParseState};
 
 /// Region contains a range of positions that is partially parsed.
