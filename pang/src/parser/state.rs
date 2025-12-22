@@ -17,7 +17,7 @@ pub enum EnumMapping {
 /// Global Parse State
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-#[deprecated(since="0.2.3", note="Use Struct instead")]
+#[deprecated(since = "0.2.3", note = "Use Struct instead")]
 pub struct ParseState {
     /// Context, which is mutable
     pub context: BTreeMap<String, Arc<DerivationTree>>,

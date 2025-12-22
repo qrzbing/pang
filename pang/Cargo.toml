@@ -28,3 +28,5 @@ derive = ["dep:pang_derive"]
 
 [dev-dependencies]
 pang = { path = ".", features = ["derive"] }
+nom = "8.0.0"
+hex = "0.4.3"

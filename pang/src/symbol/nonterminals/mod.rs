@@ -35,7 +35,7 @@ pub trait NonTerminalKind: Debug + Send + Sync {
     fn hash_dyn(&self, state: &mut dyn Hasher);
 
     /// Parse the terminal from input.
-    #[deprecated(since="0.3.0", note="Parse methods are abandoned")]
+    #[deprecated(since = "0.2.3", note = "Parse methods are abandoned")]
     #[allow(deprecated)]
     fn parse<'a>(
         &self,

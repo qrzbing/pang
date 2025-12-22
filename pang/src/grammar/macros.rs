@@ -31,20 +31,20 @@ macro_rules! grammar {
 }
 
 /// Registers a struct field into a `Grammar`.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```ignore
 /// struct TestHeader {
 ///     magic_number: u8,
 ///     version: u8,
 ///     // ...
 /// }
-/// 
+///
 /// let mut rules = Grammar::new();
 /// let mut seq = vec![];
 /// let prefix = "TestHeader";
-/// 
+///
 /// register_field!(rules, seq, prefix, "magic_number", u8);
 /// register_field!(rules, seq, prefix, "version", u8);
 /// ```

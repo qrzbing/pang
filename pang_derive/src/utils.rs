@@ -1,6 +1,139 @@
 use quote::quote;
 use syn::{Attribute, DataStruct, Fields, Ident, Index, Lit, Type, parse_str};
 
+/// BitField configuration
+pub struct BitFieldConfig {
+    pub label: String,
+    pub start: usize,
+    pub end: usize,
+}
+
+pub(crate) struct FieldGroup {
+    /// Logical name
+    ///
+    /// - `#[pang(label = "c")]` => c;
+    /// - Struct.field => field
+    pub label: String,
+    /// Corresponding physical field indices [0, 1]
+    pub members: Vec<usize>,
+    /// Whether it is a bitfield merge group
+    pub is_bitfield: bool,
+    /// Used to infer container type (u8/u16...)
+    pub max_bits: usize,
+    /// Origin type (Valid if not a bitfield)
+    pub type_origin: Option<Type>,
+    /// If type override is needed
+    ///
+    /// #[pang(semantic = "...")]
+    pub type_override: Option<Ident>,
+    /// If grammar override is needed
+    ///
+    /// #[pang(type="...")]
+    pub grammar_override: Option<proc_macro2::TokenStream>,
+}
+
+/// Input DataStruct, Output FieldGroups
+pub(crate) fn get_struct_groups(data: &DataStruct) -> Vec<FieldGroup> {
+    let fields_processing = get_fields_processing_struct(data);
+    let mut groups: Vec<FieldGroup> = Vec::new();
+
+    for (idx, (_, ty, attrs, field_name_opt)) in fields_processing.iter().enumerate() {
+        // Attempt to extract bitfield attributes (returns None if not a bitfield)
+        let bitfield_info = get_pang_bitfield_attrs(attrs);
+        let type_override = get_semantic_type_from_attrs(attrs);
+        let grammar_override = get_type_override_from_attrs(attrs);
+
+        if let Some(bf) = bitfield_info {
+            // Bitfield processing
+
+            // Check if the previous group exists, is a bitfield, and shares the same label
+            let last_group_match = if let Some(last) = groups.last() {
+                last.is_bitfield && last.label == bf.label
+            } else {
+                false
+            };
+
+            if last_group_match {
+                // Merge into the previous group
+                let group = groups.last_mut().unwrap();
+                group.members.push(idx);
+                // Update max_bits if the current field extends the bit range
+                if bf.end > group.max_bits {
+                    group.max_bits = bf.end;
+                }
+                if type_override.is_some() {
+                    group.type_override = type_override;
+                }
+            } else {
+                // Start a new group
+                groups.push(FieldGroup {
+                    label: bf.label,
+                    members: vec![idx],
+                    is_bitfield: true,
+                    max_bits: bf.end,
+                    type_origin: None, // Bitfield groups usually determine type by max_bits
+                    type_override,
+                    grammar_override,
+                });
+            }
+        } else {
+            // Normal field
+            let label = get_field_label(field_name_opt, idx);
+            groups.push(FieldGroup {
+                label,
+                members: vec![idx],
+                is_bitfield: false,
+                max_bits: 0,
+                type_origin: Some((*ty).clone()), // Normal fields retain original type
+                type_override,
+                grammar_override,
+            });
+        }
+    }
+    groups
+}
+
+pub(crate) fn get_pang_bitfield_attrs(attrs: &[Attribute]) -> Option<BitFieldConfig> {
+    let mut label = None;
+    let mut bits_range = None;
+
+    for attr in attrs {
+        if attr.path().is_ident("pang") {
+            let _ = attr.parse_nested_meta(|meta| {
+                if meta.path.is_ident("label") {
+                    if let Lit::Str(lit) = meta.value()?.parse()? {
+                        label = Some(lit.value());
+                    }
+                } else if meta.path.is_ident("bits") {
+                    if let Lit::Str(lit) = meta.value()?.parse()? {
+                        bits_range = Some(lit.value());
+                    }
+                }
+                Ok(())
+            });
+        }
+    }
+
+    match (label, bits_range) {
+        (Some(l), Some(range_str)) => {
+            // Parse "0..4"
+            let parts: Vec<&str> = range_str.split("..").collect();
+            if parts.len() == 2 {
+                let start = parts[0].parse::<usize>().ok()?;
+                let end = parts[1].parse::<usize>().ok()?;
+                Some(BitFieldConfig {
+                    label: l,
+                    start,
+                    end,
+                })
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
+}
+
 pub(crate) fn get_fields_processing_struct(
     data: &DataStruct,
 ) -> Vec<(
@@ -81,7 +214,9 @@ pub(crate) fn get_semantic_type_from_attrs(attrs: &[Attribute]) -> Option<Ident>
     None
 }
 
-pub fn get_type_override_from_attrs(attrs: &[Attribute]) -> Option<proc_macro2::TokenStream> {
+pub(crate) fn get_type_override_from_attrs(
+    attrs: &[Attribute],
+) -> Option<proc_macro2::TokenStream> {
     for attr in attrs {
         if attr.path().is_ident("pang") {
             let mut res = None;
@@ -219,5 +354,59 @@ mod tests {
 
         let (acc2, _, _, _) = &results[1];
         assert_eq!(acc2.to_string(), "self . 1");
+    }
+
+    #[test]
+    fn test_get_struct_groups() {
+        let input: DeriveInput = parse_quote! {
+            struct Packet {
+                magic: u16,
+
+                #[pang(label = "flags", bits = "0..4")]
+                f1: u8,
+
+                #[pang(label = "flags", bits = "4..7")]
+                f2: u8,
+
+                #[pang(label = "flags", bits = "7..8")]
+                f3: u8,
+
+                #[pang(semantic = "U32be")]
+                payload: u32,
+            }
+        };
+
+        let data = match input.data {
+            Data::Struct(s) => s,
+            _ => panic!("Should be struct"),
+        };
+
+        let groups = get_struct_groups(&data);
+
+        assert_eq!(
+            groups.len(),
+            3,
+            "Must have 3 groups (magic, flags, payload)"
+        );
+
+        let g1 = &groups[0];
+        assert_eq!(g1.label, "magic");
+        assert_eq!(g1.is_bitfield, false);
+        assert_eq!(g1.members, vec![0]);
+        assert!(g1.type_origin.is_some());
+
+        let g2 = &groups[1];
+        assert_eq!(g2.label, "flags");
+        assert_eq!(g2.is_bitfield, true);
+        assert_eq!(g2.members, vec![1, 2, 3]);
+        assert_eq!(g2.max_bits, 8);
+        assert!(
+            g2.type_origin.is_none(),
+            "Bitfield does not need type override"
+        );
+
+        let g3 = &groups[2];
+        assert_eq!(g3.label, "payload");
+        assert_eq!(g3.members, vec![4]);
     }
 }

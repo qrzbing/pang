@@ -1,10 +1,7 @@
 use quote::quote;
 use syn::{Data, DeriveInput, Fields};
 
-use crate::utils::{
-    get_field_label, get_fields_processing_struct, get_semantic_type_from_attrs,
-    get_type_override_from_attrs,
-};
+use crate::utils::{get_semantic_type_from_attrs, get_struct_groups, get_type_override_from_attrs};
 
 pub fn derive_to_grammar_impl(input: DeriveInput) -> proc_macro2::TokenStream {
     let struct_name = &input.ident; // The name of the type (e.g., "MyStruct")
@@ -16,63 +13,56 @@ pub fn derive_to_grammar_impl(input: DeriveInput) -> proc_macro2::TokenStream {
     // Generate the body of the `grammar()` function based on data type
     let grammar_body = match &input.data {
         Data::Struct(data) => {
-            // Gets fields, names, attributes
-            let fields_processing = get_fields_processing_struct(data);
+            // Get logical groups (includes bitfield merging logic)
+            let groups = get_struct_groups(data);
 
             let mut main_seq = vec![]; // Tokens for the main rule: [nt("S.f1"), nt("S.f2")]
             let mut extra_rules = vec![]; // Definition logic for fields
 
-            for (idx, (_accessor, ty, attrs, field_name_opt)) in
-                fields_processing.iter().enumerate()
-            {
+            for group in groups {
                 // 1. Create a unique Label for this field's rule
                 // e.g., "MyStruct.username" or "MyTuple.0"
-                let field_label = get_field_label(field_name_opt, idx);
-                let unique_rule_name = format!("{}.{}", struct_label, field_label);
-
+                let unique_rule_name = format!("{}.{}", struct_label, group.label);
                 // 2. Add reference to the Main Sequence
                 // The main struct rule will point to this intermediate rule.
                 main_seq.push(quote! { pang::nt(#unique_rule_name) });
 
-                // 3. Determine the logic for the field (Recursion vs Override)
-                let (pre_logic, rule_content) = if let Some(custom_expr) =
-                    get_type_override_from_attrs(attrs)
-                {
-                    // Case A: User Override (e.g., #[pang(type="Digit")])
-                    // No recursion needed, just output the custom expression.
-                    (quote! {}, quote! { vec![pang::#custom_expr] })
-                } else {
-                    // Case B: Default Behavior (Type Recursion)
+                // If has type override (#[pang(type="...")])
+                if let Some(custom_expr) = &group.grammar_override {
+                    extra_rules.push(quote! {
+                        rules.insert(#unique_rule_name.to_string(), vec![pang::exp(vec![pang::#custom_expr])]);
+                    });
+                    continue;
+                }
 
-                    // Check if user remapped the semantic type (e.g., #[pang(semantic="MyStruct")])
-                    let semantic_wrapper = get_semantic_type_from_attrs(attrs);
-                    let target_type = if let Some(wrapper) = semantic_wrapper {
-                        quote! { #wrapper } // Use "MyStruct"
+                let base_type = if group.is_bitfield {
+                    if group.max_bits <= 8 {
+                        quote! { u8 }
+                    } else if group.max_bits <= 16 {
+                        quote! { u16 }
+                    } else if group.max_bits <= 32 {
+                        quote! { u32 }
                     } else {
-                        quote! { #ty } // Use default type
-                    };
-
-                    (
-                        // pre_logic: RECURSION step.
-                        // Call `grammar()` on the child type and merge its rules into ours.
-                        // This ensures that if `MyStruct` contains `InnerStruct`,
-                        // `InnerStruct`'s rules are also included.
-                        quote! {
-                            rules = rules.extend_grammar(&<#target_type as pang::ToGrammar>::grammar());
-                        },
-                        // rule_content: Point to the child type's label.
-                        quote! {
-                            vec![pang::nt(&<#target_type as pang::PangLabel>::label())]
-                        },
-                    )
+                        quote! { u64 }
+                    }
+                } else {
+                    let ty = group.type_origin.as_ref().unwrap();
+                    quote! { #ty }
                 };
 
-                // 4. Register the Intermediate Rule
-                extra_rules.push(quote! {
-                    #pre_logic // Execute side effects (merging sub-grammars)
+                // If has semantic wrapper
+                let target_type = if let Some(wrapper) = &group.type_override {
+                    quote! { #wrapper }
+                } else {
+                    base_type
+                };
 
-                    // Insert the rule: "MyStruct.field1" -> [ "String" ]
-                    rules.insert(#unique_rule_name.to_string(), vec![pang::exp(#rule_content)]);
+                // Register the Intermediate Rule
+                extra_rules.push(quote! {
+                    rules = rules.extend_grammar(&<#target_type as pang::ToGrammar>::grammar());
+                    rules.insert(#unique_rule_name.to_string(), vec![pang::exp(vec![
+                        pang::nt(&<#target_type as pang::PangLabel>::label())
+                    ])]);
                 });
             }
 
