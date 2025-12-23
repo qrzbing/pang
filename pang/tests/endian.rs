@@ -30,16 +30,20 @@ impl ComplexData {
 
 #[test]
 fn test_endian() {
+    let grammar = ComplexData::grammar();
+    // <ComplexData.a> -> <U32be>
+    let a = grammar.get("ComplexData.a").unwrap();
+    assert_eq!("U32be", a[0].symbols[0].label());
+
     let bytes = [
         0xde, 0xad, 0xbe, 0xef, 0xef, 0xbe, 0xad, 0xde, 0x12, 0x34, 0x56, 0x78,
     ];
 
-    let tree = ComplexData::parse(&bytes).unwrap().1.to_tree();
+    let (_, data) = ComplexData::parse(&bytes).expect("Can not parse msg!");
 
-    let grammar = ComplexData::grammar();
+    assert_eq!(data.a, 0xdeadbeef);
+    assert_eq!(data.b, 0xdeadbeef);
 
-    // <ComplexData.a> -> <U32be>
-    let a = grammar.get("ComplexData.a").unwrap();
-    assert_eq!("<U32be>", a[0].symbols[0].display_symbol());
+    let tree = data.to_tree();
     assert_eq!(tree.to_bytes(), bytes);
 }
