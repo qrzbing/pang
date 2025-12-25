@@ -48,8 +48,8 @@ impl<T: ToTree> ToTree for Option<T> {
 impl<T: ToTree> ToTree for [T] {
     fn to_tree(&self) -> Arc<DerivationTree> {
         let children: Vec<_> = self.iter().map(|i| i.to_tree()).collect();
-
-        new_node(nt_nom(&Self::label(), 0), Some(children))
+        let repetition_node = new_node(nt_nom(&T::label(), 0), Some(children));
+        new_node(nt(&Self::label()), Some(vec![repetition_node]))
     }
 }
 

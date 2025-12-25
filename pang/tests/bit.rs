@@ -47,4 +47,6 @@ fn test_parse_bits_data() {
 
     assert_eq!(data.a, 1, "Parsed 'a' should be 1 (lower 4 bits)");
     assert_eq!(data.b, 2, "Parsed 'b' should be 2 (upper 4 bits)");
+
+    assert_eq!(data.to_tree().to_bytes(), input);
 }
