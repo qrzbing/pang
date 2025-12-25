@@ -14,6 +14,10 @@
   - Support `#[pang(semantic="MyType")]`,
   - Support `#[pang(bits="0..4")]`
 
+### Changed
+
+- Change `Option<T>` from `nt_nom` to `nt`.
+  - Now `Option<T>` can expand to `nt(T)` or Nothing.
 
 ## 0.2.3 - 2025-12-17
 

@@ -33,7 +33,7 @@ use std::{any::Any, hash::Hasher, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind};
+use crate::symbol::{DecodeError, DecodeResult, Symbol, terminals::TerminalKind};
 
 /// Convert a usize to a BER-encoded length field.
 fn usize_to_ber_bytes(len: usize) -> Vec<u8> {
@@ -60,6 +60,7 @@ fn usize_to_ber_bytes(len: usize) -> Vec<u8> {
 }
 
 /// Decode a BER-encoded length to a `usize`.
+#[allow(dead_code)]
 fn ber_to_usize(input: &[u8]) -> DecodeResult<'_, usize> {
     if input.is_empty() {
         return Err(DecodeError::Incomplete("Input is empty"));
@@ -137,18 +138,6 @@ impl TerminalKind for BerLengthTerminal {
 
     fn encode(&self) -> Result<Vec<u8>, String> {
         Ok(usize_to_ber_bytes(self.value))
-    }
-
-    fn parse<'a>(
-        &self,
-        input: &'a [u8],
-        _state: &SharedState,
-    ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
-        let (remaining_input, value) = ber_to_usize(input)?;
-        Ok((
-            remaining_input,
-            Arc::new(BerLengthTerminal::from_usize(value)),
-        ))
     }
 
     fn as_any(&self) -> &dyn Any {

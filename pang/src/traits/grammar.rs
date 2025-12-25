@@ -1,6 +1,6 @@
 //! Useful traits in Grammar.
 
-use crate::{Grammar, PangLabel, exp, nt_nom, t_bytes};
+use crate::{Grammar, PangLabel, exp, nt, nt_nom, t_bytes};
 
 /// ToGrammar trait convert a type to a grammar
 pub trait ToGrammar: PangLabel {
@@ -51,7 +51,7 @@ impl<T: ToGrammar> ToGrammar for Option<T> {
 
         rules = rules.extend_grammar(&T::grammar());
 
-        let vec_rule = vec![exp(vec![nt_nom(&T::label(), 0)])];
+        let vec_rule = vec![exp(vec![nt(&T::label())]), exp(vec![])];
 
         rules.insert(Self::label().to_string(), vec_rule);
         rules
@@ -105,13 +105,29 @@ mod tests {
 
     #[test]
     fn test_option_u8_slice_to_grammar() {
-        let grammar = <Option<&[u8]>>::grammar();
-        let grammar_name = "Option<[u8]>";
+        // Option<u32>
+        let grammar = <Option<u32>>::grammar();
+        let grammar_name = "Option<u32>";
 
-        assert_eq!(grammar.get(grammar_name).unwrap().len(), 1);
-        let expansion = &grammar.get(grammar_name).unwrap()[0];
+        assert_eq!(grammar.get(grammar_name).unwrap().len(), 2);
+        let expansions = grammar.get(grammar_name).unwrap();
+        let expansion = &expansions[0];
         assert_eq!(expansion.symbols.len(), 1);
-        assert_eq!(expansion.symbols[0], nt_nom("[u8]", 0));
+        assert_eq!(expansion.symbols[0], nt("u32"));
+        let expansion = &expansions[1];
+        assert_eq!(expansion.symbols.len(), 0);
+
+        // Option<[u64]>
+        let grammar = <Option<&[u64]>>::grammar();
+        let grammar_name = "Option<[u64]>";
+
+        assert_eq!(grammar.get(grammar_name).unwrap().len(), 2);
+        let expansions = grammar.get(grammar_name).unwrap();
+        let expansion = &expansions[0];
+        assert_eq!(expansion.symbols.len(), 1);
+        assert_eq!(expansion.symbols[0], nt("[u64]"));
+        let expansion = &expansions[1];
+        assert_eq!(expansion.symbols.len(), 0);
     }
 
     #[test]

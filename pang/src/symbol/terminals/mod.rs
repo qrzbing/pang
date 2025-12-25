@@ -4,9 +4,7 @@
 //!
 //! This module contains some exmaples of terminals.
 
-use std::{any::Any, fmt::Debug, hash::Hasher, sync::Arc};
-
-use crate::symbol::{DecodeResult, SharedState};
+use std::{any::Any, fmt::Debug, hash::Hasher};
 
 pub mod ber_length;
 pub use ber_length::*;
@@ -18,6 +16,7 @@ pub mod dynamic;
 pub use dynamic::*;
 pub mod literal;
 pub use literal::*;
+use serde::{Deserialize, Serialize};
 
 /// TerminalKind can describe a terminal symbol.
 #[typetag::serde(tag = "type")]
@@ -36,11 +35,42 @@ pub trait TerminalKind: Debug + Send + Sync {
 
     /// Hash the terminal using the given Hasher.
     fn hash_dyn(&self, state: &mut dyn Hasher);
+}
 
-    /// Parse the terminal from input.
-    fn parse<'a>(
-        &self,
-        input: &'a [u8],
-        state: &SharedState,
-    ) -> DecodeResult<'a, Arc<dyn TerminalKind>>;
+/// NopTerminal
+#[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
+pub struct NopTerminal;
+
+impl NopTerminal {
+    /// Create a new NopTerminal.
+    pub fn new() -> Self {
+        NopTerminal {}
+    }
+}
+
+#[typetag::serde]
+impl TerminalKind for NopTerminal {
+    fn display_terminal(&self) -> String {
+        "None".into()
+    }
+
+    fn encode(&self) -> Result<Vec<u8>, String> {
+        Ok("".into())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn eq_dyn(&self, other: &dyn TerminalKind) -> bool {
+        if let Some(other_val) = other.as_any().downcast_ref::<Self>() {
+            self == other_val
+        } else {
+            false
+        }
+    }
+
+    fn hash_dyn(&self, state: &mut dyn Hasher) {
+        state.write(b"NopTerminal");
+    }
 }

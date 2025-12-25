@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     display_u8,
-    symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind},
+    symbol::{Symbol, terminals::TerminalKind},
 };
 
 /// DynamicTerminal.
@@ -47,16 +47,6 @@ impl TerminalKind for DynamicTerminal {
         } else {
             Ok(self.value[..self.length].to_vec())
         }
-    }
-
-    fn parse<'a>(
-        &self,
-        input: &'a [u8],
-        _state: &SharedState,
-    ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
-        // In DynamicTerminal, we don't need to parse anything.
-        // Consume all the input and return the terminal.
-        Ok((b"", Arc::new(DynamicTerminal::from_bytes(input))))
     }
 
     fn as_any(&self) -> &dyn Any {

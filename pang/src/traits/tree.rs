@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use crate::{DerivationTree, PangLabel, new_node, nt_nom, t_bytes_val};
+use crate::{DerivationTree, PangLabel, new_node, nt, nt_nom, t_bytes_val};
 
 /// ToTree trait convert a type to a derivation tree
 pub trait ToTree: PangLabel {
@@ -41,7 +41,7 @@ impl<T: ToTree> ToTree for Option<T> {
             None => vec![],
         };
 
-        new_node(nt_nom(&Self::label(), 0), Some(children))
+        new_node(nt(&Self::label()), Some(children))
     }
 }
 
@@ -90,5 +90,16 @@ mod tests {
         let u8_vec = vec![u8::MAX, u8::MIN];
         let u8_vec_tree = u8_vec.to_tree();
         assert_eq!(u8_vec_tree.to_bytes(), u8_vec);
+    }
+
+    #[test]
+    fn test_option_to_tree() {
+        let option_val: Option<u8> = Some(0xff);
+        let option_tree = option_val.to_tree();
+        assert_eq!(option_tree.to_bytes(), [0xff]);
+
+        let option_val: Option<u8> = None;
+        let option_tree = option_val.to_tree();
+        assert_eq!(option_tree.to_bytes(), []);
     }
 }

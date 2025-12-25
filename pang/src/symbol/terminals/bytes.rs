@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     display_u8,
-    symbol::{DecodeError, DecodeResult, SharedState, Symbol, terminals::TerminalKind},
+    symbol::{Symbol, terminals::TerminalKind},
 };
 
 /// Bytes terminal.
@@ -51,24 +51,6 @@ impl TerminalKind for BytesTerminal {
         } else {
             Ok(self.value[..self.size].to_vec())
         }
-    }
-
-    fn parse<'a>(
-        &self,
-        input: &'a [u8],
-        _state: &SharedState,
-    ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
-        assert_ne!(self.size, 0);
-        if input.len() < self.size {
-            return Err(DecodeError::Incomplete(
-                "Input length is less than expected size",
-            ));
-        }
-        let (consumed_slice, remaining_input) = input.split_at(self.size);
-        Ok((
-            remaining_input,
-            Arc::new(BytesTerminal::new_from_val(consumed_slice)),
-        ))
     }
 
     fn as_any(&self) -> &dyn Any {

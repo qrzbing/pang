@@ -8,7 +8,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::symbol::{DecodeResult, SharedState, Symbol, terminals::TerminalKind};
+use crate::symbol::{Symbol, terminals::TerminalKind};
 
 ///
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
@@ -32,14 +32,6 @@ impl TerminalKind for LiteralTerminal {
 
     fn encode(&self) -> Result<Vec<u8>, String> {
         Ok(self.value.as_bytes().to_vec())
-    }
-
-    fn parse<'a>(
-        &self,
-        _input: &'a [u8],
-        _state: &SharedState,
-    ) -> DecodeResult<'a, Arc<dyn TerminalKind>> {
-        todo!("As LiteralTerminal is used to parse strings, now we don't implement it.")
     }
 
     fn as_any(&self) -> &dyn Any {
