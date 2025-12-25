@@ -2,13 +2,10 @@
 
 use std::{any::Any, hash::Hasher, sync::Arc};
 
-use log::debug;
 use serde::{Deserialize, Serialize};
 
 #[allow(deprecated)]
-use crate::{
-    DecodeResult, DerivationTree, Grammar, NonTerminalKind, ParseState, Symbol, new_node, nt,
-};
+use crate::{NonTerminalKind, Symbol};
 
 /// NOrMore NonTerminal.
 #[derive(Clone, PartialEq, Debug, Eq, Hash, Serialize, Deserialize)]
@@ -54,68 +51,6 @@ impl NonTerminalKind for NOrMoreNonTerminal {
         state.write(&self.label.as_bytes());
     }
 
-    #[allow(deprecated)]
-    fn parse<'a>(
-        &self,
-        state: &mut ParseState,
-        input: &'a [u8],
-        grammar: &'a Grammar,
-    ) -> DecodeResult<'a, Arc<DerivationTree>> {
-        let mut children = Vec::new();
-        let mut current_input = input;
-        let inner_symbol = nt(&self.label);
-
-        // Must match ar least `minimum_repeat_time` times
-        for _ in 0..self.minimum_repeat_time {
-            match inner_symbol.parse(state, current_input, grammar) {
-                Ok((next_input, child_node)) => {
-                    current_input = next_input;
-                    children.push(child_node);
-                }
-                Err(e) => {
-                    debug!(
-                        "<-- SYMBOL PARSE FAILED ({} Or More '{}'): Did not match even once.",
-                        self.minimum_repeat_time, self.label
-                    );
-                    return Err(e);
-                }
-            }
-        }
-
-        loop {
-            let mut temp_state = state.clone();
-
-            match inner_symbol.parse(&mut temp_state, current_input, grammar) {
-                Ok((next_input, child_node)) => {
-                    // Match 0 time, do not consume any input.
-                    if next_input.len() == current_input.len() {
-                        break;
-                    }
-
-                    *state = temp_state;
-
-                    current_input = next_input;
-                    children.push(child_node);
-                }
-                Err(_) => {
-                    break;
-                }
-            }
-        }
-
-        let node = new_node(
-            nt_nom(&self.label, self.minimum_repeat_time),
-            Some(children),
-        );
-        debug!(
-            "<-- SYMBOL PARSE SUCCESS (NOrMore '{}'), matched {} times, remaining_len: {}",
-            self.label,
-            node.children.as_ref().map_or(0, |c| c.len()),
-            current_input.len()
-        );
-        Ok((current_input, node))
-    }
-
     fn label(&self) -> &str {
         &self.label
     }
@@ -130,6 +65,8 @@ pub fn nt_nom(label: &str, minimum_repeat_time: u32) -> Symbol {
 
 #[cfg(test)]
 mod tests {
+    use crate::nt;
+
     use super::*;
 
     #[test]

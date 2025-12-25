@@ -1,8 +1,23 @@
 # Change Log
 
+## 0.2.4
+
+### Breaking Changes
+
+- Rename the lib from Pang to Aglaea.
+- Remove deprecated parser funtions.
+
+### Features
+
+- Support multiple derives:
+  - Support `#[pang(label="MyLabbel")]`,
+  - Support `#[pang(semantic="MyType")]`,
+  - Support `#[pang(bits="0..4")]`
+
+
 ## 0.2.3 - 2025-12-17
 
-### Beaking Changes
+### Breaking Changes
 
 - All `parse` methods in Lang/Grammar/... are deprecated, and will be removed in 0.3.0.
 
@@ -16,7 +31,7 @@
 
 ## 0.2.2 - 2025-10-16
 
-### Beaking Changes
+### Breaking Changes
 
 - Remove `generate` trait from `TerminalKind` and `NonTerminalKind`.
 - Remove `as_has_length` trait from `TerminalKind`.
@@ -49,7 +64,7 @@
 - `Grammar` can be described more clearly.
 - Add `label` and some helper functions to `Terminal`.
 
-### Beaking Changes
+### Breaking Changes
 
 - Now `Language` accepts `&Grammar`.
 
@@ -87,6 +102,6 @@
 
 - Generator and Parser are combined into Grammar.
 
-### Beaking Changes
+### Breaking Changes
 
 - Rewrite Symbol, Parser and Generator. Now both generate and parse method can be called in Language.

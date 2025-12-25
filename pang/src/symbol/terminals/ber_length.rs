@@ -27,24 +27,6 @@
 //!
 //! let ber_terminal = BerLengthTerminal::from_usize(255);
 //! assert_eq!(ber_terminal.encode(), Ok(vec![0x81, 0xff]));
-//!
-//! let ber_symbol = t_ber();
-//! let grammar = Grammar::new();
-//! let mut state = ParseState::new(Arc::new(HashMap::new()));
-//!
-//! let input = &[0x82, 0xff, 0xff];
-//! let (remaining_input, ber_kind) = ber_symbol
-//!     .parse(&mut state, input, &grammar)
-//!     .unwrap();
-//! assert_eq!(remaining_input, &[] as &[u8]);
-//! let ber_len = ber_kind
-//!     .first_terminal_kind()
-//!     .unwrap()
-//!     .as_any()
-//!     .downcast_ref::<BerLengthTerminal>()
-//!     .unwrap()
-//!     .value();
-//! assert_eq!(ber_len, 65535);
 //! ```
 
 use std::{any::Any, hash::Hasher, sync::Arc};

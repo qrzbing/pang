@@ -4,10 +4,10 @@
 //!
 //! This module contains some exmaples of non terminals.
 
-use std::{any::Any, collections::HashMap, fmt::Debug, hash::Hasher, sync::Arc};
+use std::{any::Any, collections::HashMap, fmt::Debug, hash::Hasher};
 
 #[allow(deprecated)]
-use crate::{DecodeResult, DerivationTree, EnumMapping, Grammar, ParseState};
+use crate::EnumMapping;
 
 pub mod nonterminal;
 pub use nonterminal::nt;
@@ -33,16 +33,6 @@ pub trait NonTerminalKind: Debug + Send + Sync {
 
     /// Hash the non-terminal using the given Hasher.
     fn hash_dyn(&self, state: &mut dyn Hasher);
-
-    /// Parse the terminal from input.
-    #[deprecated(since = "0.2.3", note = "Parse methods are abandoned")]
-    #[allow(deprecated)]
-    fn parse<'a>(
-        &self,
-        state: &mut ParseState,
-        input: &'a [u8],
-        grammar: &'a Grammar,
-    ) -> DecodeResult<'a, Arc<DerivationTree>>;
 
     /// Return the name of a non-terminal
     fn label(&self) -> &str;
